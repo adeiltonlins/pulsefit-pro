@@ -6,18 +6,25 @@ PulseFit Pro em React + PHP 8.3 + SQLite, preparado para VPS Ubuntu/Nginx.
 
 O repositório **não versiona** banco SQLite, uploads, backups, `.env`, chaves ou certificados. O banco real permanece apenas na VPS em `/var/www/pulsefit/storage/pulsefit.sqlite`.
 
-## Deploy na VPS
+## Deploy na VPS (repositório privado)
 
-Na primeira instalação:
+Como o repositório é privado, autentique a VPS no GitHub primeiro:
+
+```bash
+apt update && apt install -y git gh
+gh auth login
+```
+
+Escolha GitHub.com → HTTPS → Login with a web browser. Depois:
 
 ```bash
 cd /var/www
-git clone https://github.com/adeiltonlins/pulsefit-pro.git pulsefit
+gh repo clone adeiltonlins/pulsefit-pro pulsefit
 cd /var/www/pulsefit
 bash deploy/instalar-na-vps.sh
 ```
 
-O instalador cria o banco caso ele ainda não exista e pede nome, e-mail e senha do administrador diretamente no terminal.
+O instalador cria o banco caso ele ainda não exista e pede nome, e-mail e senha do administrador diretamente no terminal. A senha não é gravada no GitHub.
 
 Endereço temporário atual:
 

@@ -1,0 +1,39 @@
+server {
+    listen 80;
+    listen [::]:80;
+    server_name pulsefit.179.199.128.50.nip.io;
+
+    root /var/www/pulsefit/frontend/dist;
+    index index.html;
+
+    client_max_body_size 20M;
+
+    location /api/ {
+        try_files $uri $uri/ /api/index.php?$query_string;
+    }
+
+    location = /api/index.php {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME /var/www/pulsefit/api/index.php;
+        fastcgi_param SCRIPT_NAME /api/index.php;
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+    }
+
+    location /media/ {
+        alias /var/www/pulsefit/storage/uploads/;
+        add_header Cache-Control "public, max-age=86400";
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~ /(?:storage|database|src|node_modules)/ {
+        deny all;
+        return 404;
+    }
+
+    location ~ /\. {
+        deny all;
+    }
+}

@@ -1,0 +1,38 @@
+# PulseFit Pro - arquivos que NÃO devem ir para o GitHub
+
+# Banco/runtime
+storage/
+**/storage/
+*.sqlite
+*.sqlite3
+*.db
+
+# Uploads e backups
+uploads/
+**/uploads/
+backups/
+**/backups/
+
+# Segredos e ambiente
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Dependências/build
+node_modules/
+frontend/node_modules/
+frontend/dist/
+dist/
+
+# Logs/cache
+*.log
+.cache/
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

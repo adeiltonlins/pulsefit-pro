@@ -66,6 +66,7 @@ export const api={
   updateAdmin:(id:string|number,p:any)=>request<any>(`/admins/${id}`,{method:'PATCH',body:JSON.stringify(p)}),
   resetAdminAccess:(id:string|number)=>request<any>(`/admins/${id}/reset-access`,{method:'POST'}),
   adminOverview:()=>request<any>('/admin/overview'),
+  adminMasterMetrics:()=>request<any>('/admin/master-metrics'),
   auditLogs:()=>request<any>('/audit-logs'),
   adminSettings:()=>request<any>('/admin/settings'),
   updateAdminSettings:(p:any)=>request<any>('/admin/settings',{method:'PATCH',body:JSON.stringify(p)}),
@@ -73,6 +74,7 @@ export const api={
   createBackup:()=>request<any>('/admin/backups',{method:'POST'}),
 
   retention:()=>request<any>('/coach/retention'),
+  coachInsights:()=>request<any>('/coach/insights'),
   goals:(studentId?:string|number)=>request<any>(`/goals${qs(studentId)}`),
   createGoal:(p:any)=>request<any>('/goals',{method:'POST',body:JSON.stringify(p)}),
   updateGoal:(id:string|number,status:'active'|'completed'|'cancelled')=>request<any>(`/goals/${id}`,{method:'PATCH',body:JSON.stringify({status})}),
@@ -80,6 +82,20 @@ export const api={
   createAssessment:(p:any)=>request<any>('/assessments',{method:'POST',body:JSON.stringify(p)}),
   documents:(studentId?:string|number)=>request<any>(`/documents${qs(studentId)}`),
   createDocument:(p:any)=>request<any>('/documents',{method:'POST',body:JSON.stringify(p)}),
+  reportStudent:(studentId?:string|number,days=30)=>request<any>(`/reports/student${params({studentId,days})}`),
+  createReport:(studentId:string|number,days=30)=>request<any>('/reports/student',{method:'POST',body:JSON.stringify({studentId,days})}),
+  aiStudentSummary:(studentId:string|number,days=30)=>request<any>('/ai/student-summary',{method:'POST',body:JSON.stringify({studentId,days})}),
+
+  studentCentral:()=>request<any>('/student/central'),
+  achievements:()=>request<any>('/student/achievements'),
+
+  coachPublicProfile:()=>request<any>('/coach/public-profile'),
+  saveCoachPublicProfile:(p:any)=>request<any>('/coach/public-profile',{method:'PUT',body:JSON.stringify(p)}),
+  publicCoach:(slug:string)=>request<any>(`/public/coach/${encodeURIComponent(slug)}`),
+  createPublicLead:(slug:string,p:any)=>request<any>(`/public/coach/${encodeURIComponent(slug)}/lead`,{method:'POST',body:JSON.stringify(p)}),
+  coachLeads:(status='')=>request<any>(`/coach/leads${params({status})}`),
+  updateLead:(id:string|number,p:any)=>request<any>(`/coach/leads/${id}`,{method:'PATCH',body:JSON.stringify(p)}),
+  pwaStatus:()=>request<any>('/pwa/status'),
 
   alerts:()=>request<any>('/alerts'),
   checkins:(studentId?:string|number)=>request<any>(`/checkins${qs(studentId)}`),

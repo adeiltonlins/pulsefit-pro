@@ -28,7 +28,9 @@ jobs:
           php -l api/advanced.php
           php -l api/commercial.php
           php -l api/support.php
+          php -l api/migrations.php
           php -l deploy/init-db.php
+          php -l deploy/migrate.php
           php -l tests/router.php
 
       - name: Smoke test API

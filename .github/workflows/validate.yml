@@ -17,7 +17,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: pdo_sqlite, sqlite3, mbstring
+          extensions: pdo_sqlite, sqlite3, mbstring, curl
 
       - name: Validar PHP
         run: |
@@ -26,6 +26,8 @@ jobs:
           php -l api/features.php
           php -l api/management.php
           php -l api/advanced.php
+          php -l api/commercial.php
+          php -l api/support.php
           php -l deploy/init-db.php
           php -l tests/router.php
 

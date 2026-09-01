@@ -1,12 +1,12 @@
 import React,{useEffect,useState} from 'react';
-import {api} from '../../api';
 
+const getJson=async(path:string)=>{const r=await fetch(`/api${path}`,{credentials:'include'});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d?.error||`Erro HTTP ${r.status}`);return d};
 const Flag=({ok,label}:{ok:boolean;label:string})=><div className={`border p-3 ${ok?'border-green-800 bg-green-950/20':'border-yellow-700 bg-yellow-950/20'}`}><div className="text-[9px] uppercase text-gray-500">{label}</div><b className={ok?'text-green-400':'text-yellow-400'}>{ok?'OK':'PENDENTE'}</b></div>;
 const Stat=({label,value}:{label:string;value:any})=><div className="bg-black border border-[#333] p-3"><div className="text-[9px] uppercase text-gray-500">{label}</div><b className="text-xl text-[#DFFF00]">{value}</b></div>;
 
 export const ProductionReadinessPanel:React.FC=()=>{
  const [r,setR]=useState<any>(null),[risk,setRisk]=useState<any>({}),[error,setError]=useState('');
- useEffect(()=>{Promise.all([api.adminReadiness(),api.adminRiskDashboard()]).then(([a,b])=>{setR(a);setRisk(b.risks||{})}).catch((e:any)=>setError(e.message))},[]);
+ useEffect(()=>{Promise.all([getJson('/admin/readiness'),getJson('/admin/risk-dashboard')]).then(([a,b])=>{setR(a);setRisk(b.risks||{})}).catch((e:any)=>setError(e.message))},[]);
  if(error)return <section className="border border-red-900 bg-red-950/20 p-4 text-xs text-red-300">Prontidão operacional: {error}</section>;
  if(!r)return <section className="border border-[#333] p-4 text-xs text-gray-500">Carregando prontidão operacional...</section>;
  const c=r.checks||{},i=r.integrations||{};

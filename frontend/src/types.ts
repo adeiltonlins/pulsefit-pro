@@ -2,6 +2,7 @@ export type ScreenView =
   | 'landing'
   | 'auth_login'
   | 'coach_dashboard'
+  | 'coach_growth'
   | 'prescription'
   | 'student_detail'
   | 'student_hub'

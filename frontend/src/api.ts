@@ -72,6 +72,15 @@ export const api={
   backups:()=>request<any>('/admin/backups'),
   createBackup:()=>request<any>('/admin/backups',{method:'POST'}),
 
+  retention:()=>request<any>('/coach/retention'),
+  goals:(studentId?:string|number)=>request<any>(`/goals${qs(studentId)}`),
+  createGoal:(p:any)=>request<any>('/goals',{method:'POST',body:JSON.stringify(p)}),
+  updateGoal:(id:string|number,status:'active'|'completed'|'cancelled')=>request<any>(`/goals/${id}`,{method:'PATCH',body:JSON.stringify({status})}),
+  assessments:(studentId?:string|number)=>request<any>(`/assessments${qs(studentId)}`),
+  createAssessment:(p:any)=>request<any>('/assessments',{method:'POST',body:JSON.stringify(p)}),
+  documents:(studentId?:string|number)=>request<any>(`/documents${qs(studentId)}`),
+  createDocument:(p:any)=>request<any>('/documents',{method:'POST',body:JSON.stringify(p)}),
+
   alerts:()=>request<any>('/alerts'),
   checkins:(studentId?:string|number)=>request<any>(`/checkins${qs(studentId)}`),
   createCheckin:(p:any)=>request<any>('/checkins',{method:'POST',body:JSON.stringify(p)}),

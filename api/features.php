@@ -2,6 +2,7 @@
 // Funcionalidades avançadas do PulseFit. Este arquivo é incluído por index.php antes do 404.
 require __DIR__.'/management.php';
 require __DIR__.'/advanced.php';
+require __DIR__.'/commercial.php';
 
 function pf_student_context(array $user, ?int $requested = null): array {
     $pdo=db();

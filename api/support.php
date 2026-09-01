@@ -6,3 +6,5 @@ if($method==='POST'&&$route==='/admin/impersonate-student'){
   if(!$target)json_response(['error'=>'Aluno indisponível para visualização.'],404);
   $_SESSION['original_admin']=$actor;$_SESSION['user']=$target;$_SESSION['csrf']=bin2hex(random_bytes(32));audit($pdo,(int)$actor['id'],'impersonate_start','student',$studentId,['targetUserId'=>$target['id']]);json_response(['ok'=>true,'user'=>$target,'csrf'=>$_SESSION['csrf']]);
 }
+
+require __DIR__.'/coach_pro.php';

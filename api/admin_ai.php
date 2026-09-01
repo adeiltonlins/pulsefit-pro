@@ -11,6 +11,17 @@ if($method==='GET'&&$route==='/admin/master-metrics'){
     pf_require_admin_level('super_admin','finance','read_only');
     $out=[];$out['coachesTotal']=(int)$pdo->query('SELECT COUNT(*) FROM users WHERE role="coach" AND archived_at IS NULL')->fetchColumn();$out['coachesActive']=(int)$pdo->query('SELECT COUNT(*) FROM users WHERE role="coach" AND status="active" AND archived_at IS NULL')->fetchColumn();$out['studentsTotal']=(int)$pdo->query('SELECT COUNT(*) FROM students WHERE archived_at IS NULL')->fetchColumn();$out['studentsActive']=(int)$pdo->query('SELECT COUNT(*) FROM students WHERE status="active" AND archived_at IS NULL')->fetchColumn();$out['trials']=(int)$pdo->query('SELECT COUNT(*) FROM coach_profiles WHERE subscription_status="trialing"')->fetchColumn();$out['paidSubscriptions']=(int)$pdo->query('SELECT COUNT(*) FROM coach_profiles WHERE subscription_status="active" AND plan_code!="trial"')->fetchColumn();$out['paidCents30d']=(int)$pdo->query('SELECT COALESCE(SUM(amount_cents),0) FROM payments WHERE status="paid" AND paid_at>=datetime("now","-30 days")')->fetchColumn();$out['pendingCents']=(int)$pdo->query('SELECT COALESCE(SUM(amount_cents),0) FROM payments WHERE status="pending"')->fetchColumn();$out['workouts30d']=(int)$pdo->query('SELECT COUNT(*) FROM workout_sessions WHERE completed_at IS NOT NULL AND started_at>=datetime("now","-30 days")')->fetchColumn();$out['leads30d']=(int)$pdo->query('SELECT COUNT(*) FROM coach_leads WHERE created_at>=datetime("now","-30 days")')->fetchColumn();$out['wonLeads30d']=(int)$pdo->query('SELECT COUNT(*) FROM coach_leads WHERE status="won" AND updated_at>=datetime("now","-30 days")')->fetchColumn();json_response(['metrics'=>$out]);
 }
+if($method==='GET'&&$route==='/admin/integrations-status'){
+    pf_require_admin_level('super_admin','support','finance','read_only');
+    json_response(['integrations'=>[
+      'mercadoPago'=>trim((string)getenv('MERCADOPAGO_ACCESS_TOKEN'))!=='',
+      'stripe'=>trim((string)getenv('STRIPE_SECRET_KEY'))!=='',
+      'stripeWebhook'=>trim((string)getenv('STRIPE_WEBHOOK_SECRET'))!=='',
+      'gemini'=>trim((string)getenv('GEMINI_API_KEY'))!=='',
+      'webPush'=>trim((string)getenv('VAPID_PUBLIC_KEY'))!==''&&trim((string)getenv('VAPID_PRIVATE_KEY'))!=='',
+      'https'=>!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off'
+    ]]);
+}
 if($method==='POST'&&$route==='/ai/student-summary'){
     verify_csrf();$u=require_role('coach','admin');$in=body();$sid=(int)($in['studentId']??0);$days=max(7,min(90,(int)($in['days']??30)));$report=pf_v13_report($pdo,$u,$sid,$days);$local=pf_v15_local_summary($report);$prompt="Você é um copiloto para personal trainer. Resuma os dados abaixo em português do Brasil, em até 6 frases, sem diagnóstico médico e sem prescrever tratamento. Destaque aderência, evolução e pontos que o treinador deve revisar. Dados: ".json_encode($report,JSON_UNESCAPED_UNICODE);$ai=pf_v15_gemini($prompt);audit($pdo,(int)$u['id'],'generate','ai_summary',$sid,['days'=>$days,'provider'=>$ai?'gemini':'local']);json_response(['summary'=>$ai?:$local,'provider'=>$ai?'gemini':'local','report'=>$report]);
 }

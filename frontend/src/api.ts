@@ -27,6 +27,17 @@ export const api={
   forgotPassword:(email:string)=>request<any>('/auth/forgot-password',{method:'POST',body:JSON.stringify({email})}),
   changePassword:(currentPassword:string,newPassword:string)=>request<any>('/auth/change-password',{method:'POST',body:JSON.stringify({currentPassword,newPassword})}),
 
+  commercialStatus:()=>request<any>('/commercial/status'),
+  updateOnboarding:(step:number,completed=false)=>request<any>('/coach/onboarding',{method:'PATCH',body:JSON.stringify({step,completed})}),
+  updateCoachPlan:(id:string|number,planCode:string,subscriptionStatus:string)=>request<any>(`/admin/coaches/${id}/plan`,{method:'PATCH',body:JSON.stringify({planCode,subscriptionStatus})}),
+  consents:()=>request<any>('/privacy/consents'),
+  acceptConsent:(documentType:'terms'|'privacy'|'health_data',documentVersion='2026-09')=>request<any>('/privacy/consents',{method:'POST',body:JSON.stringify({documentType,documentVersion})}),
+  exportMyData:(studentId?:string|number)=>request<any>(`/privacy/export${studentId?`?studentId=${encodeURIComponent(String(studentId))}`:''}`),
+  savePushSubscription:(subscription:any)=>request<any>('/push/subscriptions',{method:'POST',body:JSON.stringify(subscription)}),
+  createBillingCheckout:(gateway:'mercadopago'|'stripe',planCode:'basic'|'pro'|'business')=>request<any>('/billing/checkout',{method:'POST',body:JSON.stringify({gateway,planCode})}),
+  impersonate:(userId:string|number)=>request<any>('/admin/impersonate',{method:'POST',body:JSON.stringify({userId})}),
+  stopImpersonation:()=>request<any>('/admin/impersonate/stop',{method:'POST'}),
+
   students:(filters:Record<string,any>={})=>request<{students:any[]}>(`/directory/students${params(filters)}`),
   archivedStudents:()=>request<{students:any[]}>('/directory/students?archived=1'),
   studentDetail:(id:string|number)=>request<any>(`/students/${id}/detail`),

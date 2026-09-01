@@ -1,5 +1,7 @@
 <?php
 // PulseFit V10/V15 — segurança central: lockout, troca obrigatória, ownership e níveis admin.
+// Arquivos legados podem incluir esta camada novamente; não redeclare funções.
+if(function_exists('pf_security_attempt_key')) return;
 
 function pf_security_attempt_key(string $email): string {
     return hash('sha256', strtolower(trim($email)).'|'.client_ip_hash());

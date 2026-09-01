@@ -4,7 +4,6 @@ import { api, ApiError, ApiUser, normalizeStudent } from './api';
 import { TopBar } from './components/Navigation/TopBar';
 import { Sidebar } from './components/Navigation/Sidebar';
 import { MobileBottomNav } from './components/Navigation/MobileBottomNav';
-import { ImageGalleryModal } from './components/Modals/ImageGalleryModal';
 import { MetricsUpdateModal } from './components/Modals/MetricsUpdateModal';
 
 import { LandingScreen } from './components/Screens/LandingScreen';
@@ -43,7 +42,6 @@ export default function App() {
   const [user, setUser] = useState<ApiUser | null>(null);
   const [booting, setBooting] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState<Student>(EMPTY_STUDENT);
-  const [isImageGalleryOpen, setIsImageGalleryOpen] = useState(false);
   const [isMetricsModalOpen, setIsMetricsModalOpen] = useState(false);
 
   const userRole: UserRole = user?.role || 'public';
@@ -67,7 +65,6 @@ export default function App() {
   }, []);
 
   const allowedScreens = useMemo(() => user ? ACCESS[user.role] : ['landing','auth_login'] as ScreenView[], [user]);
-
   const handleSelectStudent = (student: Student) => setSelectedStudent(student);
 
   const handleLoginSuccess = (authenticatedUser: ApiUser) => {
@@ -112,11 +109,11 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-[#e2e2e2] flex flex-col selection:bg-[#DFFF00] selection:text-[#0A0A0A]">
-      <TopBar currentScreen={currentScreen} onNavigate={handleNavigate} user={user} onLogout={handleLogout} onOpenImageGallery={() => setIsImageGalleryOpen(true)} />
+      <TopBar currentScreen={currentScreen} onNavigate={handleNavigate} user={user} onLogout={handleLogout} />
       <div className="flex-1 flex w-full">
         {!isFullWidthScreen && user && <Sidebar currentScreen={currentScreen} onNavigate={handleNavigate} user={user} onLogout={handleLogout} />}
         <main className={`flex-1 w-full ${isFullWidthScreen ? 'p-0' : 'p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto pb-24 lg:pb-12'}`}>
-          {currentScreen === 'landing' && <LandingScreen onNavigate={handleNavigate} onOpenImageGallery={() => setIsImageGalleryOpen(true)} />}
+          {currentScreen === 'landing' && <LandingScreen onNavigate={handleNavigate} />}
           {currentScreen === 'auth_login' && <AuthLoginScreen onNavigate={handleNavigate} onLoginSuccess={handleLoginSuccess} />}
           {user?.role === 'coach' && currentScreen === 'coach_dashboard' && <CoachDashboardScreen onNavigate={handleNavigate} onSelectStudent={handleSelectStudent} />}
           {user?.role === 'coach' && currentScreen === 'prescription' && <PrescriptionScreen onNavigate={handleNavigate} selectedStudent={selectedStudent} />}
@@ -133,7 +130,6 @@ export default function App() {
         </main>
       </div>
       {!isFullWidthScreen && user && <MobileBottomNav currentScreen={currentScreen} onNavigate={handleNavigate} userRole={user.role} />}
-      <ImageGalleryModal isOpen={isImageGalleryOpen} onClose={() => setIsImageGalleryOpen(false)} />
       <MetricsUpdateModal isOpen={isMetricsModalOpen} onClose={() => setIsMetricsModalOpen(false)} onSave={handleSaveMetrics} initialData={{ weight: selectedStudent.weight, bodyFat: selectedStudent.bodyFat }} />
     </div>
   );

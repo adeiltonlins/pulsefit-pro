@@ -25,3 +25,5 @@ if($method==='GET'&&$route==='/admin/integrations-status'){
 if($method==='POST'&&$route==='/ai/student-summary'){
     verify_csrf();$u=require_role('coach','admin');$in=body();$sid=(int)($in['studentId']??0);$days=max(7,min(90,(int)($in['days']??30)));$report=pf_v13_report($pdo,$u,$sid,$days);$local=pf_v15_local_summary($report);$prompt="Você é um copiloto para personal trainer. Resuma os dados abaixo em português do Brasil, em até 6 frases, sem diagnóstico médico e sem prescrever tratamento. Destaque aderência, evolução e pontos que o treinador deve revisar. Dados: ".json_encode($report,JSON_UNESCAPED_UNICODE);$ai=pf_v15_gemini($prompt);audit($pdo,(int)$u['id'],'generate','ai_summary',$sid,['days'=>$days,'provider'=>$ai?'gemini':'local']);json_response(['summary'=>$ai?:$local,'provider'=>$ai?'gemini':'local','report'=>$report]);
 }
+
+require __DIR__.'/production.php';

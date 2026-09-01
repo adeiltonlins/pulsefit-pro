@@ -95,6 +95,7 @@ export const api={
   createPublicLead:(slug:string,p:any)=>request<any>(`/public/coach/${encodeURIComponent(slug)}/lead`,{method:'POST',body:JSON.stringify(p)}),
   coachLeads:(status='')=>request<any>(`/coach/leads${params({status})}`),
   updateLead:(id:string|number,p:any)=>request<any>(`/coach/leads/${id}`,{method:'PATCH',body:JSON.stringify(p)}),
+  convertLead:(id:string|number,p:any={})=>request<any>(`/coach/leads/${id}/convert`,{method:'POST',body:JSON.stringify(p)}),
   pwaStatus:()=>request<any>('/pwa/status'),
 
   alerts:()=>request<any>('/alerts'),

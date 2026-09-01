@@ -44,11 +44,16 @@ jobs:
       - name: Smoke test API
         run: bash tests/smoke.sh
 
-      - name: Mostrar log do servidor se smoke falhar
+      - name: Smoke prontidão operacional
+        run: bash tests/production-smoke.sh
+
+      - name: Mostrar logs se smoke falhar
         if: failure()
         run: |
           echo '--- /tmp/pulsefit-smoke.log ---'
           cat /tmp/pulsefit-smoke.log || true
+          echo '--- /tmp/pulsefit-production-smoke.log ---'
+          cat /tmp/pulsefit-production-smoke.log || true
 
       - name: Node 22
         uses: actions/setup-node@v4

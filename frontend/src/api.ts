@@ -2,7 +2,7 @@ let csrfToken = '';
 
 export type ApiUser = {
   id: number | string; name: string; email: string; role: 'admin' | 'coach' | 'student';
-  code?: string; cref?: string; status?: string; mustChangePassword?: number | boolean;
+  code?: string; cref?: string; status?: string; mustChangePassword?: number | boolean; adminLevel?: 'super_admin'|'support'|'finance'|'read_only';
 };
 export class ApiError extends Error { status:number; constructor(message:string,status:number){ super(message); this.status=status; } }
 
@@ -17,6 +17,7 @@ async function request<T>(path:string, options:RequestInit={}):Promise<T>{
   if(data?.csrf) csrfToken=data.csrf; return data as T;
 }
 const qs=(studentId?:string|number)=>studentId?`?studentId=${encodeURIComponent(String(studentId))}`:'';
+const params=(p:Record<string,any>={})=>{const x=new URLSearchParams();Object.entries(p).forEach(([k,v])=>{if(v!==undefined&&v!==null&&v!=='')x.set(k,String(v))});const s=x.toString();return s?`?${s}`:''};
 
 export const api={
   health:()=>request<any>('/health'),
@@ -26,26 +27,47 @@ export const api={
   forgotPassword:(email:string)=>request<any>('/auth/forgot-password',{method:'POST',body:JSON.stringify({email})}),
   changePassword:(currentPassword:string,newPassword:string)=>request<any>('/auth/change-password',{method:'POST',body:JSON.stringify({currentPassword,newPassword})}),
 
-  students:()=>request<{students:any[]}>('/students'),
+  students:(filters:Record<string,any>={})=>request<{students:any[]}>(`/directory/students${params(filters)}`),
+  archivedStudents:()=>request<{students:any[]}>('/directory/students?archived=1'),
   studentDetail:(id:string|number)=>request<any>(`/students/${id}/detail`),
+  studentFull:(id:string|number)=>request<any>(`/students/${id}/full`),
   createStudent:(p:any)=>request<any>('/students',{method:'POST',body:JSON.stringify(p)}),
   updateStudent:(id:string|number,p:any)=>request<any>(`/students/${id}`,{method:'PATCH',body:JSON.stringify(p)}),
   updateStudentStatus:(id:string|number,status:string)=>request<any>(`/students/${id}/status`,{method:'PATCH',body:JSON.stringify({status})}),
   resetStudentAccess:(id:string|number)=>request<any>(`/students/${id}/reset-access`,{method:'POST'}),
   transferStudent:(id:string|number,coachId:string|number)=>request<any>(`/students/${id}/transfer`,{method:'PATCH',body:JSON.stringify({coachId})}),
-  deleteStudent:(id:string|number)=>request<any>(`/students/${id}`,{method:'DELETE'}),
+  archiveStudent:(id:string|number)=>request<any>(`/students/${id}/archive`,{method:'POST'}),
+  restoreStudent:(id:string|number)=>request<any>(`/students/${id}/restore`,{method:'POST'}),
+  purgeStudent:(id:string|number)=>request<any>(`/students/${id}/purge`,{method:'DELETE'}),
 
-  coaches:()=>request<{coaches:any[]}>('/coaches'),
+  coaches:()=>request<{coaches:any[]}>('/directory/coaches'),
+  archivedCoaches:()=>request<{coaches:any[]}>('/directory/coaches?archived=1'),
   createCoach:(p:any)=>request<any>('/coaches',{method:'POST',body:JSON.stringify(p)}),
   updateCoach:(id:string|number,p:any)=>request<any>(`/coaches/${id}`,{method:'PATCH',body:JSON.stringify(p)}),
   updateCoachStatus:(id:string|number,status:string)=>request<any>(`/coaches/${id}/status`,{method:'PATCH',body:JSON.stringify({status})}),
   resetCoachAccess:(id:string|number)=>request<any>(`/coaches/${id}/reset-access`,{method:'POST'}),
-  deleteCoach:(id:string|number)=>request<any>(`/coaches/${id}`,{method:'DELETE'}),
+  archiveCoach:(id:string|number)=>request<any>(`/coaches/${id}/archive`,{method:'POST'}),
+  restoreCoach:(id:string|number)=>request<any>(`/coaches/${id}/restore`,{method:'POST'}),
+  purgeCoach:(id:string|number)=>request<any>(`/coaches/${id}/purge`,{method:'DELETE'}),
 
+  admins:()=>request<any>('/admins'),
+  createAdmin:(p:any)=>request<any>('/admins',{method:'POST',body:JSON.stringify(p)}),
+  updateAdmin:(id:string|number,p:any)=>request<any>(`/admins/${id}`,{method:'PATCH',body:JSON.stringify(p)}),
+  resetAdminAccess:(id:string|number)=>request<any>(`/admins/${id}/reset-access`,{method:'POST'}),
   adminOverview:()=>request<any>('/admin/overview'),
   auditLogs:()=>request<any>('/audit-logs'),
   adminSettings:()=>request<any>('/admin/settings'),
   updateAdminSettings:(p:any)=>request<any>('/admin/settings',{method:'PATCH',body:JSON.stringify(p)}),
+  backups:()=>request<any>('/admin/backups'),
+  createBackup:()=>request<any>('/admin/backups',{method:'POST'}),
+
+  alerts:()=>request<any>('/alerts'),
+  checkins:(studentId?:string|number)=>request<any>(`/checkins${qs(studentId)}`),
+  createCheckin:(p:any)=>request<any>('/checkins',{method:'POST',body:JSON.stringify(p)}),
+  workoutTemplates:()=>request<any>('/workout-templates'),
+  createWorkoutTemplate:(p:any)=>request<any>('/workout-templates',{method:'POST',body:JSON.stringify(p)}),
+  applyWorkoutTemplate:(id:string|number,studentId:string|number)=>request<any>(`/workout-templates/${id}/apply`,{method:'POST',body:JSON.stringify({studentId})}),
+  deleteWorkoutTemplate:(id:string|number)=>request<any>(`/workout-templates/${id}`,{method:'DELETE'}),
 
   workouts:()=>request<{workouts:any[]}>('/workouts'),
   dashboard:()=>request<any>('/dashboard'),
@@ -77,4 +99,4 @@ export const api={
   completeSession:(sessionId:string|number,durationSeconds:number)=>request<any>(`/workout-sessions/${sessionId}/complete`,{method:'PATCH',body:JSON.stringify({durationSeconds})}),
 };
 
-export function normalizeStudent(s:any){return {id:String(s.id),name:s.name||'Aluno',email:s.email||'',role:'Athlete',avatar:s.avatar||'',status:s.status==='inactive'?'expired':(s.status==='active'?'active':'review'),programName:s.programName||s.program_name||'Sem programa',phase:s.phase||'Sem fase definida',lastCheckIn:s.lastCheckIn||s.last_check_in||'Sem check-in',age:Number(s.age||0),height:Number(s.height||0),weight:Number(s.weight||0),bodyFat:Number(s.bodyFat??s.body_fat??0),assignedCoachId:(s.assignedCoachId||s.coach_id)?String(s.assignedCoachId||s.coach_id):undefined,assignedCoachName:s.assignedCoachName||'',planName:s.planName||s.plan_name||'',joinedDate:s.joinedDate||s.joined_at||''};}
+export function normalizeStudent(s:any){return {id:String(s.id),name:s.name||'Aluno',email:s.email||'',role:'Athlete',avatar:s.avatar||'',status:s.status==='inactive'?'expired':(s.status==='active'?'active':'review'),programName:s.programName||s.program_name||'Sem programa',phase:s.phase||'Sem fase definida',lastCheckIn:s.lastCheckIn||s.last_check_in||'Sem check-in',age:Number(s.age||0),height:Number(s.height||0),weight:Number(s.weight||0),bodyFat:Number(s.bodyFat??s.body_fat??0),assignedCoachId:(s.assignedCoachId||s.coach_id)?String(s.assignedCoachId||s.coach_id):undefined,assignedCoachName:s.assignedCoachName||'',planName:s.planName||s.plan_name||'',joinedDate:s.joinedDate||s.joined_at||'',archivedAt:s.archivedAt||null,lastWorkoutAt:s.lastWorkoutAt||null,lastWeeklyCheckin:s.lastWeeklyCheckin||null,hasOverduePayment:Boolean(s.hasOverduePayment),workoutLate:Boolean(s.workoutLate),checkinPending:Boolean(s.checkinPending)};}

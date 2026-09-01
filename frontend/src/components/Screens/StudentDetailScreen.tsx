@@ -1,0 +1,25 @@
+import React,{useEffect,useState} from 'react';
+import {Student,ScreenView} from '../../types';
+import {api} from '../../api';
+
+type Tab='resumo'|'treinos'|'evolucao'|'anamnese'|'fotos'|'agenda'|'financeiro'|'checkins'|'historico';
+const money=(c:number)=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format((c||0)/100);
+export const StudentDetailScreen:React.FC<{student:Student;onNavigate:(s:ScreenView)=>void}>=({student,onNavigate})=>{
+ const [data,setData]=useState<any>(null),[tab,setTab]=useState<Tab>('resumo'),[msg,setMsg]=useState('');
+ useEffect(()=>{if(student.id)api.studentFull(student.id).then(setData).catch((e:any)=>setMsg(e.message))},[student.id]);
+ if(!student.id)return <div className="p-8 text-gray-500">Selecione um aluno.</div>;
+ const s=data?.student||student;
+ const tabs:[Tab,string][]=[['resumo','Resumo'],['treinos','Treinos'],['evolucao','Evolução'],['anamnese','Anamnese'],['fotos','Fotos'],['agenda','Agenda'],['financeiro','Financeiro'],['checkins','Check-ins'],['historico','Histórico']];
+ return <div className="space-y-5">{msg&&<div className="border border-red-500/40 p-3 text-red-300 text-xs">{msg}</div>}<button onClick={()=>onNavigate('coach_dashboard')} className="text-[10px] font-mono text-[#DFFF00]">← VOLTAR</button><div className="bg-[#121414] border border-[#333] p-5"><div className="text-[10px] font-mono text-[#DFFF00]">// FICHA 360º DO ALUNO</div><div className="flex flex-col lg:flex-row lg:items-end justify-between gap-3"><div><h1 className="font-anybody text-3xl font-black uppercase text-white">{s.name}</h1><p className="text-xs text-gray-500">{s.email} • {s.program_name||student.programName} • {s.phase} • treinador: {student.assignedCoachName||'-'}</p></div><div className="flex gap-2"><button onClick={()=>onNavigate('prescription')} className="px-3 py-2 bg-[#DFFF00] text-black text-[10px] font-bold">PRESCREVER</button><button onClick={()=>onNavigate('chat')} className="px-3 py-2 border border-[#333] text-[10px]">CHAT</button></div></div></div><div className="flex gap-2 overflow-x-auto pb-1">{tabs.map(([id,l])=><button key={id} onClick={()=>setTab(id)} className={`shrink-0 px-3 py-2 text-[10px] font-mono border ${tab===id?'bg-[#DFFF00] text-black border-[#DFFF00]':'border-[#333] text-gray-400'}`}>{l}</button>)}</div>
+ {tab==='resumo'&&<div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">{[['Peso',s.weight+' kg'],['Gordura',(s.body_fat??student.bodyFat)+'%'],['Treinos',data?.sessions?.length||0],['Check-ins',data?.checkins?.length||0]].map(([l,v])=><div key={l} className="bg-[#121414] border border-[#333] p-5"><div className="text-[9px] font-mono text-gray-500">{l}</div><b className="text-2xl text-white">{v}</b></div>)}</div>}
+ {tab==='treinos'&&<List rows={data?.workouts||[]} render={(x:any)=><><b>{x.title}</b><span>{x.status} • {x.publishedAt?new Date(x.publishedAt).toLocaleDateString('pt-BR'):'não publicado'}</span></>}/>} 
+ {tab==='evolucao'&&<List rows={data?.metrics||[]} render={(x:any)=><><b>{x.weight} kg • {x.bodyFat}% gordura</b><span>Cintura {x.waist} cm • {new Date(x.createdAt).toLocaleDateString('pt-BR')}</span></>}/>} 
+ {tab==='anamnese'&&<div className="bg-[#121414] border border-[#333] p-5 text-sm space-y-2"><p><b>Objetivo:</b> {data?.anamnese?.objective||'-'}</p><p><b>Lesões:</b> {data?.anamnese?.injuries||'-'}</p><p><b>Experiência:</b> {data?.anamnese?.experience||'-'}</p><p><b>Disponibilidade:</b> {data?.anamnese?.availability||'-'}</p><p><b>Observações:</b> {data?.anamnese?.notes||'-'}</p></div>}
+ {tab==='fotos'&&<div className="grid grid-cols-2 md:grid-cols-4 gap-3">{(data?.photos||[]).map((x:any)=><div key={x.id}><img src={x.url} className="aspect-[3/4] w-full object-cover border border-[#333]"/><div className="text-[9px] text-gray-500 mt-1">{x.caption||''}</div></div>)}</div>}
+ {tab==='agenda'&&<List rows={data?.appointments||[]} render={(x:any)=><><b>{x.title}</b><span>{new Date(x.startsAt).toLocaleString('pt-BR')} • {x.status}</span></>}/>} 
+ {tab==='financeiro'&&<List rows={data?.payments||[]} render={(x:any)=><><b>{money(Number(x.amountCents||0))} • {x.description||'Cobrança'}</b><span>Venc. {x.dueDate} • {x.status}</span></>}/>} 
+ {tab==='checkins'&&<List rows={data?.checkins||[]} render={(x:any)=><><b>Sono {x.sleepHours}h • dor {x.painLevel}/10 • fadiga {x.fatigueLevel}/10 • energia {x.energyLevel}/10</b><span>{x.notes||'Sem observação'} • {new Date(x.createdAt).toLocaleString('pt-BR')}</span></>}/>} 
+ {tab==='historico'&&<List rows={data?.history||[]} render={(x:any)=><><b>{x.actorName}: {x.action}</b><span>{x.details||'-'} • {new Date(x.createdAt).toLocaleString('pt-BR')}</span></>}/>} 
+ </div>;
+};
+const List:React.FC<{rows:any[];render:(x:any)=>React.ReactNode}>=({rows,render})=><div className="bg-[#121414] border border-[#333] p-4 space-y-2">{rows.length?rows.map((x:any)=><div key={x.id} className="bg-black border border-[#2a2a2a] p-3 flex flex-col gap-1 text-xs">{render(x)}</div>):<div className="p-8 text-center text-xs text-gray-500">Nenhum registro.</div>}</div>;

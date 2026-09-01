@@ -5,135 +5,18 @@ export type ApiUser = {
   code?: string; cref?: string; status?: string; mustChangePassword?: number | boolean; adminLevel?: 'super_admin'|'support'|'finance'|'read_only';
 };
 export class ApiError extends Error { status:number; constructor(message:string,status:number){ super(message); this.status=status; } }
-
-async function request<T>(path:string, options:RequestInit={}):Promise<T>{
-  const headers=new Headers(options.headers||{});
-  const isForm=typeof FormData!=='undefined' && options.body instanceof FormData;
-  if(options.body && !isForm && !headers.has('Content-Type')) headers.set('Content-Type','application/json');
-  if(csrfToken && !['GET','HEAD'].includes((options.method||'GET').toUpperCase())) headers.set('X-CSRF-Token',csrfToken);
-  const response=await fetch(`/api${path}`,{...options,headers,credentials:'include'});
-  let data:any={}; try{data=await response.json();}catch{}
-  if(!response.ok) throw new ApiError(data?.error||`Erro HTTP ${response.status}`,response.status);
-  if(data?.csrf) csrfToken=data.csrf; return data as T;
-}
+async function request<T>(path:string, options:RequestInit={}):Promise<T>{const headers=new Headers(options.headers||{});const isForm=typeof FormData!=='undefined'&&options.body instanceof FormData;if(options.body&&!isForm&&!headers.has('Content-Type'))headers.set('Content-Type','application/json');if(csrfToken&&!['GET','HEAD'].includes((options.method||'GET').toUpperCase()))headers.set('X-CSRF-Token',csrfToken);const response=await fetch(`/api${path}`,{...options,headers,credentials:'include'});let data:any={};try{data=await response.json()}catch{}if(!response.ok)throw new ApiError(data?.error||`Erro HTTP ${response.status}`,response.status);if(data?.csrf)csrfToken=data.csrf;return data as T;}
 const qs=(studentId?:string|number)=>studentId?`?studentId=${encodeURIComponent(String(studentId))}`:'';
 const params=(p:Record<string,any>={})=>{const x=new URLSearchParams();Object.entries(p).forEach(([k,v])=>{if(v!==undefined&&v!==null&&v!=='')x.set(k,String(v))});const s=x.toString();return s?`?${s}`:''};
-
 export const api={
-  health:()=>request<any>('/health'),
-  login:(email:string,password:string)=>request<{user:ApiUser;csrf:string}>('/auth/login',{method:'POST',body:JSON.stringify({email,password})}),
-  me:()=>request<{user:ApiUser;csrf:string}>('/auth/me'),
-  logout:()=>request<any>('/auth/logout',{method:'POST'}),
-  forgotPassword:(email:string)=>request<any>('/auth/forgot-password',{method:'POST',body:JSON.stringify({email})}),
-  changePassword:(currentPassword:string,newPassword:string)=>request<any>('/auth/change-password',{method:'POST',body:JSON.stringify({currentPassword,newPassword})}),
-
-  commercialStatus:()=>request<any>('/commercial/status'),
-  updateOnboarding:(step:number,completed=false)=>request<any>('/coach/onboarding',{method:'PATCH',body:JSON.stringify({step,completed})}),
-  updateCoachPlan:(id:string|number,planCode:string,subscriptionStatus:string)=>request<any>(`/admin/coaches/${id}/plan`,{method:'PATCH',body:JSON.stringify({planCode,subscriptionStatus})}),
-  consents:()=>request<any>('/privacy/consents'),
-  acceptConsent:(documentType:'terms'|'privacy'|'health_data',documentVersion='2026-09')=>request<any>('/privacy/consents',{method:'POST',body:JSON.stringify({documentType,documentVersion})}),
-  exportMyData:(studentId?:string|number)=>request<any>(`/privacy/export${studentId?`?studentId=${encodeURIComponent(String(studentId))}`:''}`),
-  savePushSubscription:(subscription:any)=>request<any>('/push/subscriptions',{method:'POST',body:JSON.stringify(subscription)}),
-  createBillingCheckout:(gateway:'mercadopago'|'stripe',planCode:'basic'|'pro'|'business')=>request<any>('/billing/checkout',{method:'POST',body:JSON.stringify({gateway,planCode})}),
-  impersonate:(userId:string|number)=>request<any>('/admin/impersonate',{method:'POST',body:JSON.stringify({userId})}),
-  stopImpersonation:()=>request<any>('/admin/impersonate/stop',{method:'POST'}),
-
-  students:(filters:Record<string,any>={})=>request<{students:any[]}>(`/directory/students${params(filters)}`),
-  archivedStudents:()=>request<{students:any[]}>('/directory/students?archived=1'),
-  studentDetail:(id:string|number)=>request<any>(`/students/${id}/detail`),
-  studentFull:(id:string|number)=>request<any>(`/students/${id}/full`),
-  createStudent:(p:any)=>request<any>('/students',{method:'POST',body:JSON.stringify(p)}),
-  updateStudent:(id:string|number,p:any)=>request<any>(`/students/${id}`,{method:'PATCH',body:JSON.stringify(p)}),
-  updateStudentStatus:(id:string|number,status:string)=>request<any>(`/students/${id}/status`,{method:'PATCH',body:JSON.stringify({status})}),
-  resetStudentAccess:(id:string|number)=>request<any>(`/students/${id}/reset-access`,{method:'POST'}),
-  transferStudent:(id:string|number,coachId:string|number)=>request<any>(`/students/${id}/transfer`,{method:'PATCH',body:JSON.stringify({coachId})}),
-  archiveStudent:(id:string|number)=>request<any>(`/students/${id}/archive`,{method:'POST'}),
-  restoreStudent:(id:string|number)=>request<any>(`/students/${id}/restore`,{method:'POST'}),
-  purgeStudent:(id:string|number)=>request<any>(`/students/${id}/purge`,{method:'DELETE'}),
-
-  coaches:()=>request<{coaches:any[]}>('/directory/coaches'),
-  archivedCoaches:()=>request<{coaches:any[]}>('/directory/coaches?archived=1'),
-  createCoach:(p:any)=>request<any>('/coaches',{method:'POST',body:JSON.stringify(p)}),
-  updateCoach:(id:string|number,p:any)=>request<any>(`/coaches/${id}`,{method:'PATCH',body:JSON.stringify(p)}),
-  updateCoachStatus:(id:string|number,status:string)=>request<any>(`/coaches/${id}/status`,{method:'PATCH',body:JSON.stringify({status})}),
-  resetCoachAccess:(id:string|number)=>request<any>(`/coaches/${id}/reset-access`,{method:'POST'}),
-  archiveCoach:(id:string|number)=>request<any>(`/coaches/${id}/archive`,{method:'POST'}),
-  restoreCoach:(id:string|number)=>request<any>(`/coaches/${id}/restore`,{method:'POST'}),
-  purgeCoach:(id:string|number)=>request<any>(`/coaches/${id}/purge`,{method:'DELETE'}),
-
-  admins:()=>request<any>('/admins'),
-  createAdmin:(p:any)=>request<any>('/admins',{method:'POST',body:JSON.stringify(p)}),
-  updateAdmin:(id:string|number,p:any)=>request<any>(`/admins/${id}`,{method:'PATCH',body:JSON.stringify(p)}),
-  resetAdminAccess:(id:string|number)=>request<any>(`/admins/${id}/reset-access`,{method:'POST'}),
-  adminOverview:()=>request<any>('/admin/overview'),
-  adminMasterMetrics:()=>request<any>('/admin/master-metrics'),
-  auditLogs:()=>request<any>('/audit-logs'),
-  adminSettings:()=>request<any>('/admin/settings'),
-  updateAdminSettings:(p:any)=>request<any>('/admin/settings',{method:'PATCH',body:JSON.stringify(p)}),
-  backups:()=>request<any>('/admin/backups'),
-  createBackup:()=>request<any>('/admin/backups',{method:'POST'}),
-
-  retention:()=>request<any>('/coach/retention'),
-  coachInsights:()=>request<any>('/coach/insights'),
-  goals:(studentId?:string|number)=>request<any>(`/goals${qs(studentId)}`),
-  createGoal:(p:any)=>request<any>('/goals',{method:'POST',body:JSON.stringify(p)}),
-  updateGoal:(id:string|number,status:'active'|'completed'|'cancelled')=>request<any>(`/goals/${id}`,{method:'PATCH',body:JSON.stringify({status})}),
-  assessments:(studentId?:string|number)=>request<any>(`/assessments${qs(studentId)}`),
-  createAssessment:(p:any)=>request<any>('/assessments',{method:'POST',body:JSON.stringify(p)}),
-  documents:(studentId?:string|number)=>request<any>(`/documents${qs(studentId)}`),
-  createDocument:(p:any)=>request<any>('/documents',{method:'POST',body:JSON.stringify(p)}),
-  reportStudent:(studentId?:string|number,days=30)=>request<any>(`/reports/student${params({studentId,days})}`),
-  createReport:(studentId:string|number,days=30)=>request<any>('/reports/student',{method:'POST',body:JSON.stringify({studentId,days})}),
-  aiStudentSummary:(studentId:string|number,days=30)=>request<any>('/ai/student-summary',{method:'POST',body:JSON.stringify({studentId,days})}),
-
-  studentCentral:()=>request<any>('/student/central'),
-  achievements:()=>request<any>('/student/achievements'),
-
-  coachPublicProfile:()=>request<any>('/coach/public-profile'),
-  saveCoachPublicProfile:(p:any)=>request<any>('/coach/public-profile',{method:'PUT',body:JSON.stringify(p)}),
-  publicCoach:(slug:string)=>request<any>(`/public/coach/${encodeURIComponent(slug)}`),
-  createPublicLead:(slug:string,p:any)=>request<any>(`/public/coach/${encodeURIComponent(slug)}/lead`,{method:'POST',body:JSON.stringify(p)}),
-  coachLeads:(status='')=>request<any>(`/coach/leads${params({status})}`),
-  updateLead:(id:string|number,p:any)=>request<any>(`/coach/leads/${id}`,{method:'PATCH',body:JSON.stringify(p)}),
-  convertLead:(id:string|number,p:any={})=>request<any>(`/coach/leads/${id}/convert`,{method:'POST',body:JSON.stringify(p)}),
-  pwaStatus:()=>request<any>('/pwa/status'),
-
-  alerts:()=>request<any>('/alerts'),
-  checkins:(studentId?:string|number)=>request<any>(`/checkins${qs(studentId)}`),
-  createCheckin:(p:any)=>request<any>('/checkins',{method:'POST',body:JSON.stringify(p)}),
-  workoutTemplates:()=>request<any>('/workout-templates'),
-  createWorkoutTemplate:(p:any)=>request<any>('/workout-templates',{method:'POST',body:JSON.stringify(p)}),
-  applyWorkoutTemplate:(id:string|number,studentId:string|number)=>request<any>(`/workout-templates/${id}/apply`,{method:'POST',body:JSON.stringify({studentId})}),
-  deleteWorkoutTemplate:(id:string|number)=>request<any>(`/workout-templates/${id}`,{method:'DELETE'}),
-
-  workouts:()=>request<{workouts:any[]}>('/workouts'),
-  dashboard:()=>request<any>('/dashboard'),
-  portal:()=>request<{student:any;workouts:any[]}>('/student/portal'),
-  appointments:()=>request<any>('/appointments'),
-  payments:()=>request<any>('/payments'),
-  notifications:()=>request<any>('/notifications'),
-  markNotificationRead:(id:string|number)=>request<any>(`/notifications/${id}/read`,{method:'POST'}),
-  markAllNotificationsRead:()=>request<any>('/notifications/read-all',{method:'POST'}),
-  metrics:(id:string|number)=>request<any>(`/students/${id}/metrics`),
-  saveMetrics:(id:string|number,p:any)=>request<any>(`/students/${id}/metrics`,{method:'POST',body:JSON.stringify(p)}),
-  createWorkout:(p:any)=>request<any>('/workouts',{method:'POST',body:JSON.stringify(p)}),
-  createAppointment:(p:any)=>request<any>('/appointments',{method:'POST',body:JSON.stringify(p)}),
-  createPayment:(p:any)=>request<any>('/payments',{method:'POST',body:JSON.stringify(p)}),
-  updatePaymentStatus:(id:string|number,status:'pending'|'paid'|'cancelled')=>request<any>(`/payments/${id}/status`,{method:'PATCH',body:JSON.stringify({status})}),
-  duplicateWorkout:(id:string|number)=>request<any>(`/workouts/${id}/duplicate`,{method:'POST'}),
-  workoutAction:(id:string|number,action:'archive'|'publish')=>request<any>(`/workouts/${id}/${action}`,{method:'PATCH'}),
-  exerciseLibrary:()=>request<{exercises:any[]}>('/exercise-library'),
-  createLibraryExercise:(p:any)=>request<any>('/exercise-library',{method:'POST',body:JSON.stringify(p)}),
-  uploadMedia:(file:File)=>{const f=new FormData();f.append('file',file);return request<{ok:boolean;url:string}>('/uploads',{method:'POST',body:f});},
-  getAnamnese:(studentId?:string|number)=>request<any>(`/anamnese${qs(studentId)}`),
-  saveAnamnese:(p:any)=>request<any>('/anamnese',{method:'PUT',body:JSON.stringify(p)}),
-  messages:(studentId?:string|number)=>request<any>(`/messages${qs(studentId)}`),
-  sendMessage:(text:string,studentId?:string|number)=>request<any>('/messages',{method:'POST',body:JSON.stringify({text,studentId})}),
-  progress:(studentId?:string|number)=>request<any>(`/progress${qs(studentId)}`),
-  uploadProgressPhoto:(file:File,caption='',studentId?:string|number)=>{const f=new FormData();f.append('file',file);f.append('caption',caption);if(studentId)f.append('studentId',String(studentId));return request<any>('/progress/photos',{method:'POST',body:f});},
-  startWorkout:(id:string|number)=>request<any>(`/workouts/${id}/start`,{method:'POST'}),
-  logSet:(sessionId:string|number,p:any)=>request<any>(`/workout-sessions/${sessionId}/sets`,{method:'POST',body:JSON.stringify(p)}),
-  completeSession:(sessionId:string|number,durationSeconds:number)=>request<any>(`/workout-sessions/${sessionId}/complete`,{method:'PATCH',body:JSON.stringify({durationSeconds})}),
+ health:()=>request<any>('/health'),login:(email:string,password:string)=>request<{user:ApiUser;csrf:string}>('/auth/login',{method:'POST',body:JSON.stringify({email,password})}),me:()=>request<{user:ApiUser;csrf:string}>('/auth/me'),logout:()=>request<any>('/auth/logout',{method:'POST'}),forgotPassword:(email:string)=>request<any>('/auth/forgot-password',{method:'POST',body:JSON.stringify({email})}),changePassword:(currentPassword:string,newPassword:string)=>request<any>('/auth/change-password',{method:'POST',body:JSON.stringify({currentPassword,newPassword})}),
+ commercialStatus:()=>request<any>('/commercial/status'),updateOnboarding:(step:number,completed=false)=>request<any>('/coach/onboarding',{method:'PATCH',body:JSON.stringify({step,completed})}),updateCoachPlan:(id:string|number,planCode:string,subscriptionStatus:string)=>request<any>(`/admin/coaches/${id}/plan`,{method:'PATCH',body:JSON.stringify({planCode,subscriptionStatus})}),consents:()=>request<any>('/privacy/consents'),acceptConsent:(documentType:'terms'|'privacy'|'health_data',documentVersion='2026-09')=>request<any>('/privacy/consents',{method:'POST',body:JSON.stringify({documentType,documentVersion})}),exportMyData:(studentId?:string|number)=>request<any>(`/privacy/export${studentId?`?studentId=${encodeURIComponent(String(studentId))}`:''}`),pushConfig:()=>request<{publicKey:string;enabled:boolean}>('/push/config'),savePushSubscription:(subscription:any)=>request<any>('/push/subscriptions',{method:'POST',body:JSON.stringify(subscription)}),createBillingCheckout:(gateway:'mercadopago'|'stripe',planCode:'basic'|'pro'|'business')=>request<any>('/billing/checkout',{method:'POST',body:JSON.stringify({gateway,planCode})}),impersonate:(userId:string|number)=>request<any>('/admin/impersonate',{method:'POST',body:JSON.stringify({userId})}),stopImpersonation:()=>request<any>('/admin/impersonate/stop',{method:'POST'}),
+ students:(filters:Record<string,any>={})=>request<{students:any[]}>(`/directory/students${params(filters)}`),archivedStudents:()=>request<{students:any[]}>('/directory/students?archived=1'),studentDetail:(id:string|number)=>request<any>(`/students/${id}/detail`),studentFull:(id:string|number)=>request<any>(`/students/${id}/full`),createStudent:(p:any)=>request<any>('/students',{method:'POST',body:JSON.stringify(p)}),updateStudent:(id:string|number,p:any)=>request<any>(`/students/${id}`,{method:'PATCH',body:JSON.stringify(p)}),updateStudentStatus:(id:string|number,status:string)=>request<any>(`/students/${id}/status`,{method:'PATCH',body:JSON.stringify({status})}),resetStudentAccess:(id:string|number)=>request<any>(`/students/${id}/reset-access`,{method:'POST'}),transferStudent:(id:string|number,coachId:string|number)=>request<any>(`/students/${id}/transfer`,{method:'PATCH',body:JSON.stringify({coachId})}),archiveStudent:(id:string|number)=>request<any>(`/students/${id}/archive`,{method:'POST'}),restoreStudent:(id:string|number)=>request<any>(`/students/${id}/restore`,{method:'POST'}),purgeStudent:(id:string|number)=>request<any>(`/students/${id}/purge`,{method:'DELETE'}),
+ coaches:()=>request<{coaches:any[]}>('/directory/coaches'),archivedCoaches:()=>request<{coaches:any[]}>('/directory/coaches?archived=1'),createCoach:(p:any)=>request<any>('/coaches',{method:'POST',body:JSON.stringify(p)}),updateCoach:(id:string|number,p:any)=>request<any>(`/coaches/${id}`,{method:'PATCH',body:JSON.stringify(p)}),updateCoachStatus:(id:string|number,status:string)=>request<any>(`/coaches/${id}/status`,{method:'PATCH',body:JSON.stringify({status})}),resetCoachAccess:(id:string|number)=>request<any>(`/coaches/${id}/reset-access`,{method:'POST'}),archiveCoach:(id:string|number)=>request<any>(`/coaches/${id}/archive`,{method:'POST'}),restoreCoach:(id:string|number)=>request<any>(`/coaches/${id}/restore`,{method:'POST'}),purgeCoach:(id:string|number)=>request<any>(`/coaches/${id}/purge`,{method:'DELETE'}),
+ admins:()=>request<any>('/admins'),createAdmin:(p:any)=>request<any>('/admins',{method:'POST',body:JSON.stringify(p)}),updateAdmin:(id:string|number,p:any)=>request<any>(`/admins/${id}`,{method:'PATCH',body:JSON.stringify(p)}),resetAdminAccess:(id:string|number)=>request<any>(`/admins/${id}/reset-access`,{method:'POST'}),adminOverview:()=>request<any>('/admin/overview'),adminMasterMetrics:()=>request<any>('/admin/master-metrics'),auditLogs:()=>request<any>('/audit-logs'),adminSettings:()=>request<any>('/admin/settings'),updateAdminSettings:(p:any)=>request<any>('/admin/settings',{method:'PATCH',body:JSON.stringify(p)}),backups:()=>request<any>('/admin/backups'),createBackup:()=>request<any>('/admin/backups',{method:'POST'}),
+ retention:()=>request<any>('/coach/retention'),coachInsights:()=>request<any>('/coach/insights'),goals:(studentId?:string|number)=>request<any>(`/goals${qs(studentId)}`),createGoal:(p:any)=>request<any>('/goals',{method:'POST',body:JSON.stringify(p)}),updateGoal:(id:string|number,status:'active'|'completed'|'cancelled')=>request<any>(`/goals/${id}`,{method:'PATCH',body:JSON.stringify({status})}),assessments:(studentId?:string|number)=>request<any>(`/assessments${qs(studentId)}`),createAssessment:(p:any)=>request<any>('/assessments',{method:'POST',body:JSON.stringify(p)}),documents:(studentId?:string|number)=>request<any>(`/documents${qs(studentId)}`),createDocument:(p:any)=>request<any>('/documents',{method:'POST',body:JSON.stringify(p)}),reportStudent:(studentId?:string|number,days=30)=>request<any>(`/reports/student${params({studentId,days})}`),createReport:(studentId:string|number,days=30)=>request<any>('/reports/student',{method:'POST',body:JSON.stringify({studentId,days})}),aiStudentSummary:(studentId:string|number,days=30)=>request<any>('/ai/student-summary',{method:'POST',body:JSON.stringify({studentId,days})}),
+ studentCentral:()=>request<any>('/student/central'),achievements:()=>request<any>('/student/achievements'),coachPublicProfile:()=>request<any>('/coach/public-profile'),saveCoachPublicProfile:(p:any)=>request<any>('/coach/public-profile',{method:'PUT',body:JSON.stringify(p)}),publicCoach:(slug:string)=>request<any>(`/public/coach/${encodeURIComponent(slug)}`),createPublicLead:(slug:string,p:any)=>request<any>(`/public/coach/${encodeURIComponent(slug)}/lead`,{method:'POST',body:JSON.stringify(p)}),coachLeads:(status='')=>request<any>(`/coach/leads${params({status})}`),updateLead:(id:string|number,p:any)=>request<any>(`/coach/leads/${id}`,{method:'PATCH',body:JSON.stringify(p)}),convertLead:(id:string|number,p:any={})=>request<any>(`/coach/leads/${id}/convert`,{method:'POST',body:JSON.stringify(p)}),pwaStatus:()=>request<any>('/pwa/status'),
+ alerts:()=>request<any>('/alerts'),checkins:(studentId?:string|number)=>request<any>(`/checkins${qs(studentId)}`),createCheckin:(p:any)=>request<any>('/checkins',{method:'POST',body:JSON.stringify(p)}),workoutTemplates:()=>request<any>('/workout-templates'),createWorkoutTemplate:(p:any)=>request<any>('/workout-templates',{method:'POST',body:JSON.stringify(p)}),applyWorkoutTemplate:(id:string|number,studentId:string|number)=>request<any>(`/workout-templates/${id}/apply`,{method:'POST',body:JSON.stringify({studentId})}),deleteWorkoutTemplate:(id:string|number)=>request<any>(`/workout-templates/${id}`,{method:'DELETE'}),
+ workouts:()=>request<{workouts:any[]}>('/workouts'),dashboard:()=>request<any>('/dashboard'),portal:()=>request<{student:any;workouts:any[]}>('/student/portal'),appointments:()=>request<any>('/appointments'),payments:()=>request<any>('/payments'),notifications:()=>request<any>('/notifications'),markNotificationRead:(id:string|number)=>request<any>(`/notifications/${id}/read`,{method:'POST'}),markAllNotificationsRead:()=>request<any>('/notifications/read-all',{method:'POST'}),metrics:(id:string|number)=>request<any>(`/students/${id}/metrics`),saveMetrics:(id:string|number,p:any)=>request<any>(`/students/${id}/metrics`,{method:'POST',body:JSON.stringify(p)}),createWorkout:(p:any)=>request<any>('/workouts',{method:'POST',body:JSON.stringify(p)}),createAppointment:(p:any)=>request<any>('/appointments',{method:'POST',body:JSON.stringify(p)}),createPayment:(p:any)=>request<any>('/payments',{method:'POST',body:JSON.stringify(p)}),updatePaymentStatus:(id:string|number,status:'pending'|'paid'|'cancelled')=>request<any>(`/payments/${id}/status`,{method:'PATCH',body:JSON.stringify({status})}),duplicateWorkout:(id:string|number)=>request<any>(`/workouts/${id}/duplicate`,{method:'POST'}),workoutAction:(id:string|number,action:'archive'|'publish')=>request<any>(`/workouts/${id}/${action}`,{method:'PATCH'}),exerciseLibrary:()=>request<{exercises:any[]}>('/exercise-library'),createLibraryExercise:(p:any)=>request<any>('/exercise-library',{method:'POST',body:JSON.stringify(p)}),uploadMedia:(file:File)=>{const f=new FormData();f.append('file',file);return request<{ok:boolean;url:string}>('/uploads',{method:'POST',body:f})},getAnamnese:(studentId?:string|number)=>request<any>(`/anamnese${qs(studentId)}`),saveAnamnese:(p:any)=>request<any>('/anamnese',{method:'PUT',body:JSON.stringify(p)}),messages:(studentId?:string|number)=>request<any>(`/messages${qs(studentId)}`),sendMessage:(text:string,studentId?:string|number)=>request<any>('/messages',{method:'POST',body:JSON.stringify({text,studentId})}),progress:(studentId?:string|number)=>request<any>(`/progress${qs(studentId)}`),uploadProgressPhoto:(file:File,caption='',studentId?:string|number)=>{const f=new FormData();f.append('file',file);f.append('caption',caption);if(studentId)f.append('studentId',String(studentId));return request<any>('/progress/photos',{method:'POST',body:f})},startWorkout:(id:string|number)=>request<any>(`/workouts/${id}/start`,{method:'POST'}),logSet:(sessionId:string|number,p:any)=>request<any>(`/workout-sessions/${sessionId}/sets`,{method:'POST',body:JSON.stringify(p)}),completeSession:(sessionId:string|number,durationSeconds:number)=>request<any>(`/workout-sessions/${sessionId}/complete`,{method:'PATCH',body:JSON.stringify({durationSeconds})}),
 };
-
 export function normalizeStudent(s:any){return {id:String(s.id),name:s.name||'Aluno',email:s.email||'',role:'Athlete',avatar:s.avatar||'',status:s.status==='inactive'?'expired':(s.status==='active'?'active':'review'),programName:s.programName||s.program_name||'Sem programa',phase:s.phase||'Sem fase definida',lastCheckIn:s.lastCheckIn||s.last_check_in||'Sem check-in',age:Number(s.age||0),height:Number(s.height||0),weight:Number(s.weight||0),bodyFat:Number(s.bodyFat??s.body_fat??0),assignedCoachId:(s.assignedCoachId||s.coach_id)?String(s.assignedCoachId||s.coach_id):undefined,assignedCoachName:s.assignedCoachName||'',planName:s.planName||s.plan_name||'',joinedDate:s.joinedDate||s.joined_at||'',archivedAt:s.archivedAt||null,lastWorkoutAt:s.lastWorkoutAt||null,lastWeeklyCheckin:s.lastWeeklyCheckin||null,hasOverduePayment:Boolean(s.hasOverduePayment),workoutLate:Boolean(s.workoutLate),checkinPending:Boolean(s.checkinPending)};}

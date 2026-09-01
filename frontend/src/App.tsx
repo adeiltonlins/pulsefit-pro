@@ -128,7 +128,7 @@ export default function App() {
           {(user?.role === 'coach' || user?.role === 'student') && currentScreen === 'anamnese' && <AnamneseScreen onNavigate={handleNavigate} selectedStudent={selectedStudent} userRole={userRole} />}
           {(user?.role === 'coach' || user?.role === 'student') && currentScreen === 'chat' && <ChatScreen onNavigate={handleNavigate} selectedStudent={selectedStudent} userRole={userRole} />}
           {(user?.role === 'coach' || user?.role === 'student') && currentScreen === 'agenda' && <AgendaScreen onNavigate={handleNavigate} />}
-          {user && currentScreen === 'assinatura' && <AssinaturaScreen onNavigate={handleNavigate} />}
+          {user && currentScreen === 'assinatura' && <AssinaturaScreen onNavigate={handleNavigate} userRole={userRole} />}
           {user?.role === 'admin' && currentScreen === 'admin_system' && <AdminDashboardScreen onNavigate={handleNavigate} />}
         </main>
       </div>

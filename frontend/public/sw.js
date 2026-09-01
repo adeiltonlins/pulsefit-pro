@@ -1,0 +1,7 @@
+const CACHE='pulsefit-v9';
+const SHELL=['/','/manifest.webmanifest','/pulsefit-icon.svg'];
+self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
+self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+self.addEventListener('fetch',event=>{if(event.request.method!=='GET'||new URL(event.request.url).origin!==location.origin)return;event.respondWith(fetch(event.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put(event.request,copy));return r}).catch(()=>caches.match(event.request).then(r=>r||caches.match('/'))))});
+self.addEventListener('push',event=>{let data={title:'PulseFit Pro',body:'Você tem uma nova atualização.'};try{if(event.data)data={...data,...event.data.json()}}catch{if(event.data)data.body=event.data.text()}event.waitUntil(self.registration.showNotification(data.title,{body:data.body,icon:'/pulsefit-icon.svg',badge:'/pulsefit-icon.svg',data:{url:data.url||'/'}}))});
+self.addEventListener('notificationclick',event=>{event.notification.close();const url=event.notification.data?.url||'/';event.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>{for(const c of list){if('focus'in c){c.navigate(url);return c.focus()}}return clients.openWindow(url)}))});

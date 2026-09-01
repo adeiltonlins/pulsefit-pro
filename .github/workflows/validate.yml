@@ -27,6 +27,10 @@ jobs:
           php -l api/management.php
           php -l api/advanced.php
           php -l deploy/init-db.php
+          php -l tests/router.php
+
+      - name: Smoke test API
+        run: bash tests/smoke.sh
 
       - name: Node 22
         uses: actions/setup-node@v4

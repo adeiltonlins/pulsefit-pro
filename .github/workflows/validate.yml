@@ -36,6 +36,7 @@ jobs:
           php -l api/reports.php
           php -l api/growth.php
           php -l api/admin_ai.php
+          php -l api/production.php
           php -l deploy/init-db.php
           php -l deploy/migrate.php
           php -l tests/router.php

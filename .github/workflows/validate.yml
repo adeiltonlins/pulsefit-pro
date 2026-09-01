@@ -24,6 +24,7 @@ jobs:
           php -l api/bootstrap.php
           php -l api/index.php
           php -l api/features.php
+          php -l api/management.php
           php -l deploy/init-db.php
 
       - name: Node 22

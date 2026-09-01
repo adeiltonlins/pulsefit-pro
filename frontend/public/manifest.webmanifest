@@ -1,0 +1,13 @@
+{
+  "name": "PulseFit Pro",
+  "short_name": "PulseFit",
+  "description": "Treinos, evolução e gestão para treinadores e alunos.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A0A0A",
+  "theme_color": "#DFFF00",
+  "lang": "pt-BR",
+  "icons": [
+    {"src":"/pulsefit-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}

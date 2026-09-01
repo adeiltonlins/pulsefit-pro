@@ -29,12 +29,25 @@ jobs:
           php -l api/commercial.php
           php -l api/support.php
           php -l api/migrations.php
+          php -l api/security.php
+          php -l api/roadmap.php
+          php -l api/coach_pro.php
+          php -l api/student_pro.php
+          php -l api/reports.php
+          php -l api/growth.php
+          php -l api/admin_ai.php
           php -l deploy/init-db.php
           php -l deploy/migrate.php
           php -l tests/router.php
 
       - name: Smoke test API
         run: bash tests/smoke.sh
+
+      - name: Mostrar log do servidor se smoke falhar
+        if: failure()
+        run: |
+          echo '--- /tmp/pulsefit-smoke.log ---'
+          cat /tmp/pulsefit-smoke.log || true
 
       - name: Node 22
         uses: actions/setup-node@v4

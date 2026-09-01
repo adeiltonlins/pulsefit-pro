@@ -81,3 +81,6 @@ if($method==='POST' && preg_match('#^/workout-sessions/(\d+)/sets$#',$route,$m))
 if($method==='PATCH' && preg_match('#^/workout-sessions/(\d+)/complete$#',$route,$m)){
     verify_csrf();$u=require_role('student');$s=pf_student_context($u);$in=body();$q=db()->prepare('UPDATE workout_sessions SET completed_at=CURRENT_TIMESTAMP,duration_seconds=:duration WHERE id=:id AND student_id=:student AND completed_at IS NULL');$q->execute(['duration'=>max(0,(int)($in['durationSeconds']??0)),'id'=>(int)$m[1],'student'=>$s['id']]);if(!$q->rowCount())json_response(['error'=>'Sessão não encontrada.'],404);db()->prepare('UPDATE students SET last_check_in=CURRENT_TIMESTAMP WHERE id=:id')->execute(['id'=>$s['id']]);db()->prepare('INSERT INTO notifications(user_id,title,body) VALUES(:user,"Treino concluído",:body)')->execute(['user'=>$s['coach_id'],'body'=>$s['name'].' concluiu um treino.']);json_response(['ok'=>true]);
 }
+
+// V11 -> V15: Professor Pro, Aluno Pro, Relatórios, Growth/CRM e Admin/IA.
+require __DIR__.'/roadmap.php';

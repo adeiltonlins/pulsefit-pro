@@ -5,6 +5,8 @@ require __DIR__ . '/bootstrap.php';
 $method=$_SERVER['REQUEST_METHOD']??'GET';
 $route=route_path();
 $pdo=db();
+require __DIR__.'/migrations.php';
+require __DIR__.'/security.php';
 
 if($method==='GET'&&$route==='/health')json_response(['ok'=>true,'installed'=>is_file(PF_DB),'sqlite'=>extension_loaded('pdo_sqlite')]);
 

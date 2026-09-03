@@ -5,29 +5,36 @@ import { api } from '../../api';
 import { ExerciseThumbnail } from '../ExerciseThumbnail';
 
 interface Props { onNavigate:(screen:ScreenView)=>void; selectedStudent:Student; }
+type Day='A'|'B'|'C'|'D';
+type DayMap=Record<Day,ExerciseItem[]>;
+const EMPTY_DAYS:DayMap={A:[],B:[],C:[],D:[]};
 const toItem=(x:any,i=0):ExerciseItem=>({
   id:String(x.id??`lib-${Date.now()}-${i}`), libraryExerciseId:Number(x.id||0)||undefined, order:String(i+1).padStart(2,'0'),
   name:x.name||'Exercício', category:x.category||'GERAL', type:x.type||'ISOLADO', equipment:x.equipment||'LIVRE',
-  thumbnail:x.thumbnail||'', sets:Number(x.sets||3), reps:String(x.reps||'10-12'), load:String(x.load||''), rest:Number(x.rest||60),
+  thumbnail:(typeof x.thumbnail==='string'&&!x.thumbnail.startsWith('data:image/svg+xml'))?x.thumbnail:'', sets:Number(x.sets||3), reps:String(x.reps||'10-12'), load:String(x.load||''), rest:Number(x.rest||60),
   rpe:Number(x.rpe||8), tempo:x.tempo||'2-0-2-0', instructions:x.instructions||'', mediaType:(x.mediaType==='video'?'video':'image')
 });
 
 export const PrescriptionScreen:React.FC<Props>=({onNavigate,selectedStudent})=>{
-  const [currentDay,setCurrentDay]=useState<'A'|'B'|'C'|'D'>('A');
-  const [exercises,setExercises]=useState<ExerciseItem[]>([]);
+  const [currentDay,setCurrentDay]=useState<Day>('A');
+  const [dayExercises,setDayExercises]=useState<DayMap>(EMPTY_DAYS);
   const [library,setLibrary]=useState<ExerciseItem[]>([]);
   const [search,setSearch]=useState(''); const [filter,setFilter]=useState('ALL');
   const [loading,setLoading]=useState(true); const [message,setMessage]=useState('');
   const [customOpen,setCustomOpen]=useState(false); const [uploading,setUploading]=useState(false);
   const [custom,setCustom]=useState({name:'',category:'GERAL',type:'ISOLADO',equipment:'LIVRE',thumbnail:'',mediaType:'image',instructions:'',sets:3,reps:'10-12',rest:60,rpe:8,tempo:'2-0-2-0'});
+  const exercises=dayExercises[currentDay];
 
   const loadLibrary=async()=>{setLoading(true);try{const r=await api.exerciseLibrary();setLibrary((r.exercises||[]).map(toItem));}catch(e:any){setMessage(e.message||'Falha ao carregar biblioteca.');}finally{setLoading(false)}};
   useEffect(()=>{loadLibrary()},[]);
+  useEffect(()=>{setDayExercises({A:[],B:[],C:[],D:[]});setCurrentDay('A');setMessage('')},[selectedStudent.id]);
+
   const filtered=useMemo(()=>library.filter(x=>{const q=search.toLowerCase();const match=!q||`${x.name} ${x.category} ${x.equipment}`.toLowerCase().includes(q);if(!match)return false;if(filter==='ALL')return true;if(filter==='LEGS')return /QUAD|POSTERIOR|GLÚTEO|PANTURRILHA|ADUTOR/.test(x.category);if(filter==='PUSH')return /PEITO|TRÍCEPS|OMBRO/.test(x.category);if(filter==='PULL')return /COSTAS|BÍCEPS|TRAPÉZIO|ANTEBRAÇO/.test(x.category);return true;}),[library,search,filter]);
-  const add=(lib:ExerciseItem)=>setExercises(prev=>[...prev,{...lib,id:`rx-${Date.now()}-${prev.length}`,order:String(prev.length+1).padStart(2,'0')}]);
-  const update=(id:string,k:keyof ExerciseItem,v:any)=>setExercises(p=>p.map(x=>x.id===id?{...x,[k]:v}:x));
-  const remove=(id:string)=>setExercises(p=>p.filter(x=>x.id!==id).map((x,i)=>({...x,order:String(i+1).padStart(2,'0')})));
-  const save=async()=>{setMessage('');if(!selectedStudent?.id||!exercises.length){setMessage('Selecione um aluno real e adicione pelo menos um exercício.');return;}try{await api.createWorkout({studentId:Number(selectedStudent.id),title:`Treino ${currentDay} • ${selectedStudent.programName||'Programa'}`,status:'published',exercises:exercises.map(x=>({libraryExerciseId:x.libraryExerciseId,name:x.name,sets:x.sets,reps:x.reps,load:x.load,rest:x.rest,thumbnail:x.thumbnail,category:x.category,type:x.type,equipment:x.equipment,rpe:x.rpe,tempo:x.tempo,instructions:x.instructions}))});setMessage('Treino publicado para o aluno.');}catch(e:any){setMessage(e.message||'Falha ao salvar.')}};
+  const writeDay=(fn:(items:ExerciseItem[])=>ExerciseItem[])=>setDayExercises(prev=>({...prev,[currentDay]:fn(prev[currentDay])}));
+  const add=(lib:ExerciseItem)=>writeDay(prev=>[...prev,{...lib,id:`rx-${currentDay}-${Date.now()}-${prev.length}`,order:String(prev.length+1).padStart(2,'0')}]);
+  const update=(id:string,k:keyof ExerciseItem,v:any)=>writeDay(p=>p.map(x=>x.id===id?{...x,[k]:v}:x));
+  const remove=(id:string)=>writeDay(p=>p.filter(x=>x.id!==id).map((x,i)=>({...x,order:String(i+1).padStart(2,'0')})));
+  const save=async()=>{setMessage('');if(!selectedStudent?.id||!exercises.length){setMessage(`Selecione um aluno real e adicione pelo menos um exercício no Dia ${currentDay}.`);return;}try{await api.createWorkout({studentId:Number(selectedStudent.id),title:`Treino ${currentDay} • ${selectedStudent.programName||'Programa'}`,status:'published',exercises:exercises.map(x=>({libraryExerciseId:x.libraryExerciseId,name:x.name,sets:x.sets,reps:x.reps,load:x.load,rest:x.rest,thumbnail:x.thumbnail,category:x.category,type:x.type,equipment:x.equipment,rpe:x.rpe,tempo:x.tempo,instructions:x.instructions}))});setMessage(`Dia ${currentDay} publicado para o aluno. As fichas dos outros dias foram preservadas.`);}catch(e:any){setMessage(e.message||'Falha ao salvar.')}};
   const upload=async(file?:File)=>{if(!file)return;setUploading(true);try{const r=await api.uploadMedia(file);setCustom(c=>({...c,thumbnail:r.url,mediaType:file.type.startsWith('video/')?'video':'image'}));}catch(e:any){setMessage(e.message||'Falha no upload.')}finally{setUploading(false)}};
   const createCustom=async()=>{try{await api.createLibraryExercise(custom);setCustomOpen(false);setCustom({name:'',category:'GERAL',type:'ISOLADO',equipment:'LIVRE',thumbnail:'',mediaType:'image',instructions:'',sets:3,reps:'10-12',rest:60,rpe:8,tempo:'2-0-2-0'});await loadLibrary();setMessage('Exercício personalizado salvo na sua biblioteca.');}catch(e:any){setMessage(e.message||'Falha ao criar exercício.')}};
   const filters=[['ALL','TODOS'],['LEGS','PERNAS'],['PUSH','EMPURRAR'],['PULL','PUXAR']];
@@ -36,18 +43,16 @@ export const PrescriptionScreen:React.FC<Props>=({onNavigate,selectedStudent})=>
     {message&&<div className="border border-[#DFFF00]/40 bg-[#121414] px-4 py-3 text-xs font-mono text-[#DFFF00]">{message}</div>}
     <div className="bg-[#121414] border border-[#333535] p-5 flex flex-col md:flex-row gap-4 md:items-center justify-between">
       <div className="flex gap-4 items-center"><img src={selectedStudent.avatar||APP_IMAGES.studentProfileAlex} className="w-14 h-14 object-cover border-2 border-[#DFFF00]"/><div><div className="text-[10px] font-mono text-[#DFFF00]">// PRESCRIÇÃO REAL</div><h1 className="font-anybody text-2xl font-black uppercase text-white">{selectedStudent.name}</h1><p className="text-xs font-mono text-[#909378]">{selectedStudent.programName} • {selectedStudent.phase}</p></div></div>
-      <div className="flex flex-wrap gap-2">{(['A','B','C','D'] as const).map(d=><button key={d} onClick={()=>setCurrentDay(d)} className={`px-3 py-2 text-xs font-mono border ${currentDay===d?'bg-[#DFFF00] text-black border-[#DFFF00]':'border-[#333] text-gray-300'}`}>DIA {d}</button>)}<button onClick={save} className="px-5 py-2 bg-[#DFFF00] text-black font-anybody font-black text-xs uppercase">Publicar treino</button></div>
+      <div className="flex flex-wrap gap-2">{(['A','B','C','D'] as Day[]).map(d=><button key={d} onClick={()=>setCurrentDay(d)} className={`px-3 py-2 text-xs font-mono border ${currentDay===d?'bg-[#DFFF00] text-black border-[#DFFF00]':'border-[#333] text-gray-300'}`}>DIA {d} {dayExercises[d].length>0&&`(${dayExercises[d].length})`}</button>)}<button onClick={save} className="px-5 py-2 bg-[#DFFF00] text-black font-anybody font-black text-xs uppercase">Publicar Dia {currentDay}</button></div>
     </div>
 
     <div className="grid lg:grid-cols-12 gap-6">
       <section className="lg:col-span-8 space-y-3">
         <div className="flex items-center justify-between border-b border-[#222] pb-2"><h2 className="font-anybody font-bold uppercase text-white">Ficha do Dia {currentDay}</h2><span className="text-xs font-mono text-[#DFFF00]">{exercises.length} exercícios</span></div>
-        {!exercises.length&&<div className="border border-dashed border-[#333] p-10 text-center text-xs font-mono text-gray-500">Escolha exercícios na biblioteca ao lado.</div>}
+        {!exercises.length&&<div className="border border-dashed border-[#333] p-10 text-center text-xs font-mono text-gray-500">O Dia {currentDay} está vazio. Escolha exercícios na biblioteca ao lado.</div>}
         {exercises.map(ex=><div key={ex.id} className="bg-[#121414] border border-[#333535] p-4 space-y-4 hover:border-[#DFFF00]/60">
           <div className="flex items-center gap-3"><span className="text-2xl font-anybody font-black text-[#DFFF00]">{ex.order}</span><div className="w-24 h-20 bg-black border border-[#333] overflow-hidden shrink-0"><ExerciseThumbnail name={ex.name} category={ex.category} equipment={ex.equipment} src={ex.thumbnail} mediaType={ex.mediaType}/></div><div className="flex-1"><h3 className="font-anybody font-bold uppercase text-white">{ex.name}</h3><p className="text-[10px] font-mono text-[#909378]">{ex.category} • {ex.equipment}</p></div><button onClick={()=>remove(ex.id)} className="text-gray-500 hover:text-red-400"><span className="material-symbols-outlined">delete</span></button></div>
-          <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">{[
-            ['Séries','sets','number'],['Reps','reps','text'],['Carga','load','text'],['Desc.','rest','number'],['RPE','rpe','number'],['Tempo','tempo','text']
-          ].map(([label,key,type])=><label key={key} className="text-[10px] font-mono text-gray-500 uppercase">{label}<input type={type} value={(ex as any)[key]??''} onChange={e=>update(ex.id,key as keyof ExerciseItem,type==='number'?Number(e.target.value):e.target.value)} className="mt-1 w-full bg-black border border-[#333] px-2 py-2 text-xs text-white focus:border-[#DFFF00] outline-none"/></label>)}</div>
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">{[['Séries','sets','number'],['Reps','reps','text'],['Carga','load','text'],['Desc.','rest','number'],['RPE','rpe','number'],['Tempo','tempo','text']].map(([label,key,type])=><label key={key} className="text-[10px] font-mono text-gray-500 uppercase">{label}<input type={type} value={(ex as any)[key]??''} onChange={e=>update(ex.id,key as keyof ExerciseItem,type==='number'?Number(e.target.value):e.target.value)} className="mt-1 w-full bg-black border border-[#333] px-2 py-2 text-xs text-white focus:border-[#DFFF00] outline-none"/></label>)}</div>
           <textarea value={ex.instructions||''} onChange={e=>update(ex.id,'instructions',e.target.value)} placeholder="Instruções do treinador..." className="w-full bg-black border border-[#333] px-3 py-2 text-xs font-mono text-white outline-none focus:border-[#DFFF00]"/>
         </div>)}
       </section>

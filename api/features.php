@@ -4,6 +4,8 @@ require __DIR__.'/management.php';
 require __DIR__.'/advanced.php';
 require __DIR__.'/commercial.php';
 require __DIR__.'/support.php';
+require __DIR__.'/migrations_branding.php';
+require __DIR__.'/brand_kit.php';
 
 function pf_student_context(array $user, ?int $requested = null): array {
     $pdo=db();

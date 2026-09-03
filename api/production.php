@@ -42,3 +42,4 @@ if($method==='POST'&&$route==='/ai/student-history'){
 }
 
 require __DIR__.'/admin_master_ops.php';
+require __DIR__.'/performance_tools.php';

@@ -4,6 +4,7 @@ if(PHP_SAPI!=='cli'){fwrite(STDERR,"Somente CLI.\n");exit(1);}
 require dirname(__DIR__).'/api/bootstrap.php';
 $pdo=db();
 require dirname(__DIR__).'/api/migrations.php';
+require dirname(__DIR__).'/api/migrations_performance.php';
 echo "Migrações PulseFit aplicadas com sucesso.\n";
 
 $rows=$pdo->query('SELECT u.id,u.name,cp.plan_code,cp.subscription_status,cp.trial_ends_at,(SELECT COUNT(*) FROM students s WHERE s.coach_id=u.id AND s.archived_at IS NULL) AS students_count FROM users u LEFT JOIN coach_profiles cp ON cp.user_id=u.id WHERE u.role="coach" ORDER BY u.id')->fetchAll();

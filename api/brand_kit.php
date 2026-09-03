@@ -7,6 +7,9 @@ function pf_brand_for_coach(PDO $pdo,int $coachId):array{
     $q=$pdo->prepare('SELECT u.id AS coachId,u.name AS coachName,COALESCE(cp.brand_name,"") AS brandName,COALESCE(cp.brand_logo_url,"") AS logoUrl,COALESCE(cp.brand_banner_url,"") AS bannerUrl,COALESCE(cp.brand_primary,"#DFFF00") AS primaryColor,COALESCE(cp.brand_secondary,"#121414") AS secondaryColor,COALESCE(cp.brand_accent,"#FFFFFF") AS accentColor,COALESCE(cp.brand_theme,"dark") AS theme,COALESCE(cp.brand_slogan,"") AS slogan,COALESCE(cp.brand_whatsapp,"") AS whatsapp,COALESCE(cp.brand_instagram,"") AS instagram,COALESCE(cp.brand_website,"") AS website FROM users u LEFT JOIN coach_profiles cp ON cp.user_id=u.id WHERE u.id=:id AND u.role="coach"');
     $q->execute(['id'=>$coachId]);$r=$q->fetch();if(!$r)return [];$r['displayName']=$r['brandName']?:$r['coachName'];return $r;
 }
+if($method==='GET'&&preg_match('#^/public/brand/([a-z0-9-]+)$#',$route,$m)){
+    $q=$pdo->prepare('SELECT coach_id FROM coach_public_profiles WHERE slug=:slug AND public_enabled=1');$q->execute(['slug'=>$m[1]]);$coachId=(int)$q->fetchColumn();if(!$coachId)json_response(['brand'=>null]);json_response(['brand'=>pf_brand_for_coach($pdo,$coachId)]);
+}
 if($method==='GET'&&$route==='/brand-kit'){
     $u=current_user();$coachId=0;
     if($u['role']==='coach')$coachId=(int)$u['id'];

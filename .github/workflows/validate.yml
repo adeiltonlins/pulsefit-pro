@@ -30,7 +30,10 @@ jobs:
           php -l api/support.php
           php -l api/migrations.php
           php -l api/migrations_performance.php
+          php -l api/migrations_branding.php
           php -l api/exercise_seed.php
+          php -l api/exercise_ptbr.php
+          php -l api/brand_kit.php
           php -l api/security.php
           php -l api/roadmap.php
           php -l api/coach_pro.php
@@ -43,6 +46,7 @@ jobs:
           php -l deploy/init-db.php
           php -l deploy/migrate.php
           php -l tests/router.php
+          php -l tests/branding_smoke.php
 
       - name: Smoke test API
         run: bash tests/smoke.sh
@@ -52,6 +56,9 @@ jobs:
 
       - name: Smoke performance
         run: bash tests/performance_smoke.sh
+
+      - name: Smoke branding e biblioteca
+        run: php tests/branding_smoke.php
 
       - name: Mostrar logs se smoke falhar
         if: failure()

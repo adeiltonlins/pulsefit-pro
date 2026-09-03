@@ -15,6 +15,12 @@ function pf_new_access_password(int $userId): string {
     db()->prepare('DELETE FROM password_reset_tokens WHERE user_id=:id')->execute(['id'=>$userId]);
     return $pass;
 }
+function pf_require_master_admin_inline(PDO $pdo): array {
+    $actor=require_role('admin');
+    $q=$pdo->prepare('SELECT COALESCE(admin_level,"read_only") FROM admin_profiles WHERE user_id=:id');$q->execute(['id'=>$actor['id']]);
+    if((string)($q->fetchColumn()?:'read_only')!=='super_admin')json_response(['error'=>'Somente o Super Admin pode alterar credenciais de acesso.'],403);
+    return $actor;
+}
 
 if($method==='GET'&&$route==='/admin/overview'){
     require_role('admin');
@@ -76,6 +82,20 @@ if($method==='PATCH'&&preg_match('#^/coaches/(\d+)$#',$route,$m)){
     $q=$pdo->prepare('SELECT u.*,COALESCE(cp.specialty,"") specialty,COALESCE(cp.unit,"") unit FROM users u LEFT JOIN coach_profiles cp ON cp.user_id=u.id WHERE u.id=:id AND u.role="coach"');$q->execute(['id'=>$id]);$c=$q->fetch();if(!$c)json_response(['error'=>'Treinador não encontrado.'],404);
     $name=trim((string)($in['name']??$c['name']));$email=clean_email($in['email']??$c['email']);
     $pdo->beginTransaction();try{$pdo->prepare('UPDATE users SET name=:name,email=:email,cref=:cref WHERE id=:id')->execute(['name'=>$name,'email'=>$email,'cref'=>trim((string)($in['cref']??$c['cref'])),'id'=>$id]);$pdo->prepare('INSERT INTO coach_profiles(user_id,specialty,unit) VALUES(:id,:specialty,:unit) ON CONFLICT(user_id) DO UPDATE SET specialty=:specialty,unit=:unit')->execute(['id'=>$id,'specialty'=>trim((string)($in['specialty']??$c['specialty'])),'unit'=>trim((string)($in['unit']??$c['unit']))]);$pdo->commit();audit($pdo,(int)$actor['id'],'update','coach',$id);json_response(['ok'=>true]);}catch(Throwable $e){$pdo->rollBack();json_response(['error'=>'Falha ao atualizar treinador.'],500);}
+}
+
+if($method==='PATCH'&&preg_match('#^/admin/coaches/(\d+)/credentials$#',$route,$m)){
+    verify_csrf();$actor=pf_require_master_admin_inline($pdo);$id=(int)$m[1];$in=body();
+    $email=clean_email($in['email']??'');$password=(string)($in['password']??'');$forceChange=!empty($in['forceChangePassword'])?1:0;
+    if(!$email)json_response(['error'=>'Informe um e-mail/login válido.'],422);
+    if($password!==''&&strlen($password)<12)json_response(['error'=>'A senha precisa ter pelo menos 12 caracteres.'],422);
+    $q=$pdo->prepare('SELECT id,name,email FROM users WHERE id=:id AND role="coach"');$q->execute(['id'=>$id]);$c=$q->fetch();if(!$c)json_response(['error'=>'Treinador não encontrado.'],404);
+    try{
+      if($password!==''){$q=$pdo->prepare('UPDATE users SET email=:email,password_hash=:hash,must_change_password=:force WHERE id=:id AND role="coach"');$q->execute(['email'=>$email,'hash'=>password_hash($password,PASSWORD_DEFAULT),'force'=>$forceChange,'id'=>$id]);$pdo->prepare('DELETE FROM password_reset_tokens WHERE user_id=:id')->execute(['id'=>$id]);}
+      else{$pdo->prepare('UPDATE users SET email=:email WHERE id=:id AND role="coach"')->execute(['email'=>$email,'id'=>$id]);}
+      audit($pdo,(int)$actor['id'],'set_credentials','coach',$id,['email'=>$email,'passwordChanged'=>$password!=='','forceChangePassword'=>(bool)$forceChange]);
+      json_response(['ok'=>true,'login'=>$email,'passwordChanged'=>$password!=='','forceChangePassword'=>(bool)$forceChange]);
+    }catch(Throwable $e){json_response(['error'=>str_contains($e->getMessage(),'UNIQUE')?'Este e-mail/login já está em uso.':'Não foi possível atualizar as credenciais.'],409);}
 }
 
 if($method==='POST'&&preg_match('#^/coaches/(\d+)/reset-access$#',$route,$m)){

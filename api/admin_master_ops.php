@@ -19,14 +19,7 @@ if($method==='GET'&&$route==='/admin/master/coaches'){
 if($method==='GET'&&$route==='/admin/master/billing'){
     pf_require_admin_level('super_admin','finance','read_only');
     $events=$pdo->query('SELECT be.id,be.coach_id AS coachId,u.name AS coachName,be.gateway,be.external_id AS externalId,be.status,be.amount_cents AS amountCents,be.created_at AS createdAt FROM billing_events be JOIN users u ON u.id=be.coach_id ORDER BY be.id DESC LIMIT 300')->fetchAll();
-    $summary=[
-      'eventsTotal'=>(int)$pdo->query('SELECT COUNT(*) FROM billing_events')->fetchColumn(),
-      'created30d'=>(int)$pdo->query('SELECT COUNT(*) FROM billing_events WHERE created_at>=datetime("now","-30 days")')->fetchColumn(),
-      'activeSubscriptions'=>(int)$pdo->query('SELECT COUNT(*) FROM coach_profiles WHERE subscription_status="active" AND plan_code!="trial"')->fetchColumn(),
-      'pastDue'=>(int)$pdo->query('SELECT COUNT(*) FROM coach_profiles WHERE subscription_status="past_due"')->fetchColumn(),
-      'cancelled'=>(int)$pdo->query('SELECT COUNT(*) FROM coach_profiles WHERE subscription_status="cancelled"')->fetchColumn(),
-      'trials'=>(int)$pdo->query('SELECT COUNT(*) FROM coach_profiles WHERE subscription_status="trialing"')->fetchColumn()
-    ];
+    $summary=['eventsTotal'=>(int)$pdo->query('SELECT COUNT(*) FROM billing_events')->fetchColumn(),'created30d'=>(int)$pdo->query('SELECT COUNT(*) FROM billing_events WHERE created_at>=datetime("now","-30 days")')->fetchColumn(),'activeSubscriptions'=>(int)$pdo->query('SELECT COUNT(*) FROM coach_profiles WHERE subscription_status="active" AND plan_code!="trial"')->fetchColumn(),'pastDue'=>(int)$pdo->query('SELECT COUNT(*) FROM coach_profiles WHERE subscription_status="past_due"')->fetchColumn(),'cancelled'=>(int)$pdo->query('SELECT COUNT(*) FROM coach_profiles WHERE subscription_status="cancelled"')->fetchColumn(),'trials'=>(int)$pdo->query('SELECT COUNT(*) FROM coach_profiles WHERE subscription_status="trialing"')->fetchColumn()];
     json_response(['summary'=>$summary,'events'=>$events]);
 }
 
@@ -35,4 +28,12 @@ if($method==='GET'&&$route==='/admin/master/overview'){
     $settingsRows=$pdo->query('SELECT setting_key AS key,setting_value AS value FROM app_settings ORDER BY setting_key')->fetchAll();$settings=[];foreach($settingsRows as $r)$settings[$r['key']]=$r['value'];
     $readiness=['https'=>!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off','mercadoPago'=>trim((string)getenv('MERCADOPAGO_ACCESS_TOKEN'))!=='','stripe'=>trim((string)getenv('STRIPE_SECRET_KEY'))!=='','stripeWebhook'=>trim((string)getenv('STRIPE_WEBHOOK_SECRET'))!=='','mercadoPagoWebhook'=>trim((string)getenv('MERCADOPAGO_WEBHOOK_SECRET'))!=='','gemini'=>trim((string)getenv('GEMINI_API_KEY'))!=='','vapid'=>trim((string)getenv('VAPID_PUBLIC_KEY'))!==''&&trim((string)getenv('VAPID_PRIVATE_KEY'))!==''];
     json_response(['settings'=>$settings,'readiness'=>$readiness,'risks'=>pf_prod_risks($pdo),'backup'=>pf_prod_latest_backup()]);
+}
+
+if($method==='GET'&&$route==='/admin/master/performance'){
+    pf_require_admin_level('super_admin','support','finance','read_only');
+    $summary=['strengthTests'=>(int)$pdo->query('SELECT COUNT(*) FROM strength_tests')->fetchColumn(),'strengthTests30d'=>(int)$pdo->query('SELECT COUNT(*) FROM strength_tests WHERE created_at>=datetime("now","-30 days")')->fetchColumn(),'posturalAssessments'=>(int)$pdo->query('SELECT COUNT(*) FROM postural_assessments')->fetchColumn(),'postural30d'=>(int)$pdo->query('SELECT COUNT(*) FROM postural_assessments WHERE created_at>=datetime("now","-30 days")')->fetchColumn(),'physicalTests'=>(int)$pdo->query('SELECT COUNT(*) FROM physical_tests')->fetchColumn(),'rankingsEnabled'=>(int)$pdo->query('SELECT COUNT(*) FROM ranking_settings WHERE enabled=1')->fetchColumn()];
+    $recentStrength=$pdo->query('SELECT st.id,s.name AS studentName,u.name AS coachName,st.exercise_name AS exerciseName,st.estimated_1rm AS estimated1rm,st.created_at AS createdAt FROM strength_tests st JOIN students s ON s.id=st.student_id JOIN users u ON u.id=st.coach_id ORDER BY st.id DESC LIMIT 20')->fetchAll();
+    $recentPosture=$pdo->query('SELECT pa.id,s.name AS studentName,u.name AS coachName,pa.view_type AS viewType,pa.score,pa.created_at AS createdAt FROM postural_assessments pa JOIN students s ON s.id=pa.student_id JOIN users u ON u.id=pa.coach_id ORDER BY pa.id DESC LIMIT 20')->fetchAll();
+    json_response(['summary'=>$summary,'recentStrength'=>$recentStrength,'recentPosture'=>$recentPosture]);
 }

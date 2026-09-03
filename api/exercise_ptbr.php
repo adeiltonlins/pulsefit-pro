@@ -21,7 +21,7 @@ function pf_translate_exercise_library(PDO $pdo): void {
     $equip=['AIR BIKE'=>'BICICLETA DE BRAÇOS E PERNAS','BIKE'=>'BICICLETA','SLED'=>'TRENÓ','MEDICINE BALL'=>'BOLA MEDICINAL','REMO'=>'ERGÔMETRO DE REMO'];
     $q=$pdo->prepare('UPDATE exercise_library SET equipment=:new WHERE is_system=1 AND equipment=:old');foreach($equip as $old=>$new)$q->execute(['new'=>$new,'old'=>$old]);
     $pdo->exec("UPDATE exercise_library SET instructions='Ajuste amplitude, carga e execução conforme o objetivo, o nível e a condição do aluno.' WHERE is_system=1");
-    $rows=$pdo->query('SELECT id,name,category,media_url FROM exercise_library WHERE is_system=1')->fetchAll();
-    $thumb=$pdo->prepare('UPDATE exercise_library SET media_url=:url,media_type="image" WHERE id=:id');
-    foreach($rows as $r){if(trim((string)($r['media_url']??''))==='')$thumb->execute(['url'=>pf_exercise_svg((string)$r['name'],(string)$r['category']),'id'=>$r['id']]);}
+
+    // Remove apenas as antigas placas SVG automáticas. Mídia real (arquivo, URL, GIF ou vídeo) permanece intacta.
+    $pdo->exec("UPDATE exercise_library SET media_url=NULL WHERE is_system=1 AND media_url LIKE 'data:image/svg+xml%'");
 }

@@ -30,6 +30,7 @@ jobs:
           php -l api/support.php
           php -l api/migrations.php
           php -l api/migrations_performance.php
+          php -l api/exercise_seed.php
           php -l api/security.php
           php -l api/roadmap.php
           php -l api/coach_pro.php

@@ -49,9 +49,11 @@ function Pose({type}:{type:string}){
 }
 
 export const ExerciseThumbnail:React.FC<Props>=({name,category='',equipment='',src='',mediaType='image',className=''})=>{
- if(src){
-  if(mediaType==='video')return <video src={src} className={`w-full h-full object-cover ${className}`} muted playsInline/>;
-  return <img src={src} alt={name} className={`w-full h-full object-cover ${className}`}/>;
+ const legacyPlaceholder=src.startsWith('data:image/svg+xml');
+ const realSrc=legacyPlaceholder?'':src;
+ if(realSrc){
+  if(mediaType==='video')return <video src={realSrc} className={`w-full h-full object-cover ${className}`} muted playsInline/>;
+  return <img src={realSrc} alt={name} className={`w-full h-full object-cover ${className}`}/>;
  }
  const type=kind(name,category);
  return <div className={`w-full h-full bg-[#080909] relative overflow-hidden ${className}`} title={`${name} • ${equipment}`}>

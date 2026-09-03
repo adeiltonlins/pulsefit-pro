@@ -3,6 +3,7 @@ export type ScreenView =
   | 'auth_login'
   | 'coach_dashboard'
   | 'coach_growth'
+  | 'brand_kit'
   | 'prescription'
   | 'fitness_tools'
   | 'postural_assessment'

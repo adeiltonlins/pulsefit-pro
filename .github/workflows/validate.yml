@@ -29,6 +29,7 @@ jobs:
           php -l api/commercial.php
           php -l api/support.php
           php -l api/migrations.php
+          php -l api/migrations_performance.php
           php -l api/security.php
           php -l api/roadmap.php
           php -l api/coach_pro.php
@@ -37,6 +38,7 @@ jobs:
           php -l api/growth.php
           php -l api/admin_ai.php
           php -l api/production.php
+          php -l api/performance_tools.php
           php -l deploy/init-db.php
           php -l deploy/migrate.php
           php -l tests/router.php
@@ -47,6 +49,9 @@ jobs:
       - name: Smoke prontidão operacional
         run: bash tests/production-smoke.sh
 
+      - name: Smoke performance
+        run: bash tests/performance_smoke.sh
+
       - name: Mostrar logs se smoke falhar
         if: failure()
         run: |
@@ -54,6 +59,8 @@ jobs:
           cat /tmp/pulsefit-smoke.log || true
           echo '--- /tmp/pulsefit-production-smoke.log ---'
           cat /tmp/pulsefit-production-smoke.log || true
+          echo '--- /tmp/pulsefit-performance.log ---'
+          cat /tmp/pulsefit-performance.log || true
 
       - name: Node 22
         uses: actions/setup-node@v4
